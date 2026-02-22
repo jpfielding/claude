@@ -2,33 +2,11 @@
 #
 # confluence.sh - Confluence REST API CLI wrapper
 #
-# Usage: confluence.sh <instance> <command> [args...]
+# Usage: confluence.sh <hostname-or-substring> <command> [args...]
 #
-# Configuration: ~/.confluence-navigator/instances.json
-# Format (netrc auth - credentials read from ~/.netrc):
-# {
-#   "default": "psdo",
-#   "instances": {
-#     "psdo": {
-#       "base_url": "https://confluence.psdo.lsre.launchpad-leidos.com",
-#       "auth_type": "netrc"
-#     }
-#   }
-# }
-#
-# ~/.netrc entry:
-#   machine confluence.psdo.lsre.launchpad-leidos.com
-#   login your_username
-#   password your_pat_token
-#
-# Auth types:
-#   netrc - Read credentials from ~/.netrc by hostname (Bearer token from password field)
-#   pat   - Personal Access Token (Bearer header), stored in config
-#   basic - Username:password (Basic auth), stored in config
+# Credentials from ~/.netrc, Bearer auth
 
 set -euo pipefail
-
-CONFIG_FILE="${CONFLUENCE_NAV_CONFIG:-$HOME/.confluence-navigator/instances.json}"
 
 # --- helpers ---
 
@@ -38,26 +16,49 @@ require_jq() {
   command -v jq >/dev/null 2>&1 || die "jq is required but not installed"
 }
 
-load_instance() {
-  local name="$1"
-  [[ -f "$CONFIG_FILE" ]] || die "Config not found: $CONFIG_FILE. Run setup first."
+resolve_host() {
+  # Takes a hostname or substring, scans ~/.netrc for matches.
+  # Sets HOSTNAME and BASE_URL, then calls parse_netrc.
+  local input="$1"
+  local netrc_file="${HOME}/.netrc"
+  [[ -f "$netrc_file" ]] || die "~/.netrc not found"
 
-  if [[ "$name" == "default" ]]; then
-    name=$(jq -r '.default // empty' "$CONFIG_FILE")
-    [[ -n "$name" ]] || die "No default instance configured"
+  if [[ "$input" == *.* ]]; then
+    # Input contains a dot — use as-is
+    HOSTNAME="$input"
+  else
+    # Substring match against machine entries in ~/.netrc
+    local machines=()
+    local tokens
+    tokens=$(tr '\n' ' ' < "$netrc_file")
+    set -- $tokens
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        machine)
+          shift
+          if [[ "${1:-}" == *"$input"* && "${1:-}" == *"confluence"* ]]; then
+            machines+=("${1:-}")
+          fi
+          ;;
+      esac
+      shift
+    done
+
+    if [[ ${#machines[@]} -eq 0 ]]; then
+      die "No ~/.netrc machine entries matching '$input'"
+    elif [[ ${#machines[@]} -gt 1 ]]; then
+      echo "Multiple matches for '$input':" >&2
+      for m in "${machines[@]}"; do
+        echo "  $m" >&2
+      done
+      die "Ambiguous host substring '$input' — be more specific or use the full hostname"
+    fi
+
+    HOSTNAME="${machines[0]}"
   fi
 
-  BASE_URL=$(jq -r ".instances[\"$name\"].base_url // empty" "$CONFIG_FILE")
-  AUTH_TYPE=$(jq -r ".instances[\"$name\"].auth_type // empty" "$CONFIG_FILE")
-  TOKEN=$(jq -r ".instances[\"$name\"].token // empty" "$CONFIG_FILE")
-  USERNAME=$(jq -r ".instances[\"$name\"].username // empty" "$CONFIG_FILE")
-  PASSWORD=$(jq -r ".instances[\"$name\"].password // empty" "$CONFIG_FILE")
-
-  [[ -n "$BASE_URL" ]] || die "Instance '$name' not found in config"
-  [[ -n "$AUTH_TYPE" ]] || die "auth_type not set for instance '$name'"
-
-  # Strip trailing slash
-  BASE_URL="${BASE_URL%/}"
+  BASE_URL="https://${HOSTNAME}"
+  parse_netrc "$HOSTNAME"
 }
 
 parse_netrc() {
@@ -108,32 +109,7 @@ extract_hostname() {
 }
 
 auth_header() {
-  case "$AUTH_TYPE" in
-    netrc)
-      local hostname
-      hostname=$(extract_hostname "$BASE_URL")
-      parse_netrc "$hostname"
-      echo "Authorization: Bearer $NETRC_PASSWORD"
-      ;;
-    netrc-basic)
-      local hostname
-      hostname=$(extract_hostname "$BASE_URL")
-      parse_netrc "$hostname"
-      [[ -n "$NETRC_LOGIN" ]] || die "No login found in ~/.netrc for $(extract_hostname "$BASE_URL")"
-      echo "Authorization: Basic $(echo -n "$NETRC_LOGIN:$NETRC_PASSWORD" | base64)"
-      ;;
-    pat)
-      [[ -n "$TOKEN" ]] || die "token not set for PAT auth"
-      echo "Authorization: Bearer $TOKEN"
-      ;;
-    basic)
-      [[ -n "$USERNAME" && -n "$PASSWORD" ]] || die "username/password not set for basic auth"
-      echo "Authorization: Basic $(echo -n "$USERNAME:$PASSWORD" | base64)"
-      ;;
-    *)
-      die "Unknown auth_type: $AUTH_TYPE"
-      ;;
-  esac
+  echo "Authorization: Bearer $NETRC_PASSWORD"
 }
 
 api_get() {
@@ -149,7 +125,7 @@ api_get() {
 
   local response
   response=$(curl -sS -w "\n%{http_code}" \
-    -H "$(auth_header)" \
+    -H "Authorization: Bearer $NETRC_PASSWORD" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json" \
     "$url" 2>&1) || die "curl failed: $response"
@@ -167,76 +143,47 @@ api_get() {
 
 # --- commands ---
 
-cmd_setup() {
-  local name="${1:-}"
-  [[ -n "$name" ]] || die "Usage: confluence.sh setup <instance-name> <base-url> <auth-type> [token|username password]"
-  local base_url="${2:-}"
-  local auth_type="${3:-pat}"
+cmd_discover() {
+  # Scan ~/.netrc for machine entries that look like Confluence hosts
+  local filter="${1:-confluence}"
+  local netrc_file="${HOME}/.netrc"
+  [[ -f "$netrc_file" ]] || die "~/.netrc not found"
 
-  mkdir -p "$(dirname "$CONFIG_FILE")"
+  local machines=()
+  local tokens
+  tokens=$(tr '\n' ' ' < "$netrc_file")
+  set -- $tokens
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      machine)
+        shift
+        if [[ "${1:-}" == *"$filter"* ]]; then
+          machines+=("${1:-}")
+        fi
+        ;;
+    esac
+    shift
+  done
 
-  # Create config if it doesn't exist
-  if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo '{"default":"","instances":{}}' > "$CONFIG_FILE"
-    chmod 600 "$CONFIG_FILE"
+  if [[ ${#machines[@]} -eq 0 ]]; then
+    echo "No ~/.netrc entries matching '$filter' found."
+    echo ""
+    echo "To search with a different substring: confluence.sh discover <substring>"
+    return
   fi
 
-  local tmp
-  case "$auth_type" in
-    netrc|netrc-basic)
-      # Validate that .netrc has an entry for this host
-      local hostname
-      hostname=$(extract_hostname "$base_url")
-      parse_netrc "$hostname"
-      echo "Found ~/.netrc entry for $hostname (login: ${NETRC_LOGIN:-<none>})"
-      tmp=$(jq --arg n "$name" --arg u "$base_url" --arg a "$auth_type" \
-        '.instances[$n] = {"base_url":$u,"auth_type":$a}' "$CONFIG_FILE")
-      ;;
-    pat)
-      local token="${4:-}"
-      [[ -n "$token" ]] || die "PAT auth requires a token argument"
-      tmp=$(jq --arg n "$name" --arg u "$base_url" --arg t "$token" \
-        '.instances[$n] = {"base_url":$u,"auth_type":"pat","token":$t}' "$CONFIG_FILE")
-      ;;
-    basic)
-      local user="${4:-}" pass="${5:-}"
-      [[ -n "$user" && -n "$pass" ]] || die "Basic auth requires username and password"
-      tmp=$(jq --arg n "$name" --arg u "$base_url" --arg user "$user" --arg pass "$pass" \
-        '.instances[$n] = {"base_url":$u,"auth_type":"basic","username":$user,"password":$pass}' "$CONFIG_FILE")
-      ;;
-    *)
-      die "Unknown auth_type: $auth_type (use 'netrc', 'netrc-basic', 'pat', or 'basic')"
-      ;;
-  esac
-
-  # Set as default if first instance
-  local count
-  count=$(echo "$tmp" | jq '.instances | length')
-  if [[ "$count" -eq 1 ]]; then
-    tmp=$(echo "$tmp" | jq --arg n "$name" '.default = $n')
-  fi
-
-  echo "$tmp" > "$CONFIG_FILE"
-  echo "Instance '$name' configured. Config: $CONFIG_FILE"
-}
-
-cmd_set_default() {
-  local name="${1:-}"
-  [[ -n "$name" ]] || die "Usage: confluence.sh <instance> set-default"
-  [[ -f "$CONFIG_FILE" ]] || die "Config not found"
-  local tmp
-  tmp=$(jq --arg n "$name" '.default = $n' "$CONFIG_FILE")
-  echo "$tmp" > "$CONFIG_FILE"
-  echo "Default instance set to '$name'"
-}
-
-cmd_list_instances() {
-  [[ -f "$CONFIG_FILE" ]] || die "Config not found"
-  local default_inst
-  default_inst=$(jq -r '.default // ""' "$CONFIG_FILE")
-  echo "Configured instances:"
-  jq -r '.instances | to_entries[] | "  \(.key): \(.value.base_url) [\(.value.auth_type)]"' "$CONFIG_FILE"
-  echo "Default: ${default_inst:-<none>}"
+  echo "Found ~/.netrc entries matching '$filter':"
+  echo ""
+  local i=1
+  for m in "${machines[@]}"; do
+    echo "  [$i] $m"
+    i=$((i + 1))
+  done
+  echo ""
+  echo "Usage: confluence.sh <hostname-or-substring> <command>"
+  echo ""
+  echo "Example using the first match:"
+  echo "  confluence.sh ${machines[0]} test"
 }
 
 cmd_recent() {
@@ -430,58 +377,57 @@ require_jq
 COMMAND="${1:-help}"
 
 case "$COMMAND" in
-  setup)
-    shift; cmd_setup "$@" ;;
-  list-instances)
-    cmd_list_instances ;;
+  discover)
+    shift; cmd_discover "$@" ;;
   help)
-    echo "Usage: confluence.sh <command> [args...]"
-    echo "       confluence.sh <instance> <command> [args...]"
+    echo "Usage: confluence.sh <host> <command> [args...]"
     echo ""
-    echo "Setup commands:"
-    echo "  setup <name> <base-url> <auth-type> [token|user pass]  Configure an instance"
-    echo "  list-instances                                          List configured instances"
-    echo "  <instance> set-default                                  Set default instance"
+    echo "Discovery:"
+    echo "  discover [substring]              Find Confluence hosts in ~/.netrc"
     echo ""
-    echo "Query commands (use instance name or 'default'):"
-    echo "  <inst> whoami                     Show current user"
-    echo "  <inst> test                       Test connection"
-    echo "  <inst> recent [limit]             Recent content changes"
-    echo "  <inst> watched                    List watched content"
-    echo "  <inst> watch-changes [days]       Changes to watched content (default: 7 days)"
-    echo "  <inst> search <CQL> [limit]       Search via CQL"
-    echo "  <inst> spaces [limit]             List spaces"
-    echo "  <inst> space-pages <key> [limit]  Pages in a space"
-    echo "  <inst> page <id> [format]         Get page content"
-    echo "  <inst> page-info <id>             Get page metadata"
-    echo "  <inst> children <id>              List child pages"
-    echo "  <inst> labels <id>                List page labels"
-    echo "  <inst> history <id> [limit]       Page version history"
+    echo "Commands (first arg is hostname or unique substring from ~/.netrc):"
+    echo "  <host> whoami                     Show current user"
+    echo "  <host> test                       Test connection"
+    echo "  <host> recent [limit]             Recent content changes"
+    echo "  <host> watched                    List watched content"
+    echo "  <host> watch-changes [days]       Changes to watched content (default: 7 days)"
+    echo "  <host> search <CQL> [limit]       Search via CQL"
+    echo "  <host> spaces [limit]             List spaces"
+    echo "  <host> space-pages <key> [limit]  Pages in a space"
+    echo "  <host> page <id> [format]         Get page content"
+    echo "  <host> page-info <id>             Get page metadata"
+    echo "  <host> children <id>              List child pages"
+    echo "  <host> labels <id>                List page labels"
+    echo "  <host> history <id> [limit]       Page version history"
     exit 0
     ;;
   *)
-    # Instance-scoped command: confluence.sh <instance> <command> [args...]
-    INSTANCE="$1"
+    # Host-scoped command: confluence.sh <host> <command> [args...]
+    HOST="$1"
     shift
     SUBCMD="${1:-help}"
     shift || true
-    load_instance "$INSTANCE"
+    resolve_host "$HOST"
     case "$SUBCMD" in
-      set-default)  cmd_set_default "$INSTANCE" ;;
-      whoami)       cmd_whoami ;;
-      test)         cmd_test ;;
-      recent)       cmd_recent "$@" ;;
-      watched)      cmd_watched ;;
+      whoami)        cmd_whoami ;;
+      test)          cmd_test ;;
+      recent)        cmd_recent "$@" ;;
+      watched)       cmd_watched ;;
       watch-changes) cmd_watch_changes "$@" ;;
-      search)       cmd_search "$@" ;;
-      spaces)       cmd_spaces "$@" ;;
-      space-pages)  cmd_space_pages "$@" ;;
-      page)         cmd_page "$@" ;;
-      page-info)    cmd_page_info "$@" ;;
-      children)     cmd_children "$@" ;;
-      labels)       cmd_labels "$@" ;;
-      history)      cmd_history "$@" ;;
-      *)            die "Unknown command: $SUBCMD (run 'confluence.sh help')" ;;
+      search)        cmd_search "$@" ;;
+      spaces)        cmd_spaces "$@" ;;
+      space-pages)   cmd_space_pages "$@" ;;
+      page)          cmd_page "$@" ;;
+      page-info)     cmd_page_info "$@" ;;
+      children)      cmd_children "$@" ;;
+      labels)        cmd_labels "$@" ;;
+      history)       cmd_history "$@" ;;
+      help)
+        echo "Usage: confluence.sh <host> <command> [args...]"
+        echo "Run 'confluence.sh help' for full command list."
+        exit 0
+        ;;
+      *)             die "Unknown command: $SUBCMD (run 'confluence.sh help')" ;;
     esac
     ;;
 esac
