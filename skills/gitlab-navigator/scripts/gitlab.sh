@@ -1,1 +1,0 @@
-/Users/fieldingj/.claude/scripts/gitlab.sh

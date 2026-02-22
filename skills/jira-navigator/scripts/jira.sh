@@ -1,1 +1,0 @@
-/Users/fieldingj/.claude/scripts/jira.sh

@@ -5,24 +5,24 @@ description: Navigate and query self-hosted Jira instances via REST API. Use whe
 
 # Jira Navigator
 
-Query self-hosted Jira Server/Data Center instances via REST API v2 and Agile REST API using the bundled `scripts/jira.sh` CLI wrapper. Credentials are read from `~/.netrc` (Bearer token auth). See [references/api_endpoints.md](references/api_endpoints.md) for full endpoint reference and JQL syntax.
+Query self-hosted Jira Server/Data Center instances via REST API v2 and Agile REST API using the bundled `go run ~/.claude/scripts/jira-navigator/main.go` CLI wrapper. Credentials are read from `~/.netrc` (Bearer token auth). See [references/api_endpoints.md](references/api_endpoints.md) for full endpoint reference and JQL syntax.
 
 ## Finding Hosts
 
 Scan `~/.netrc` for Jira hostnames:
 ```bash
-scripts/jira.sh discover
-scripts/jira.sh discover myorg   # custom substring
+go run ~/.claude/scripts/jira-navigator/main.go discover
+go run ~/.claude/scripts/jira-navigator/main.go discover myorg   # custom substring
 ```
 
 Test a connection (use hostname or substring):
 ```bash
-scripts/jira.sh lsre test
+go run ~/.claude/scripts/jira-navigator/main.go lsre test
 ```
 
 ## Commands
 
-All commands: `scripts/jira.sh <host> <command> [args...]`
+All commands: `go run ~/.claude/scripts/jira-navigator/main.go <host> <command> [args...]`
 
 `<host>` is a hostname or substring matching a `~/.netrc` entry. The script auto-filters for jira hosts.
 
@@ -30,48 +30,48 @@ All commands: `scripts/jira.sh <host> <command> [args...]`
 
 1. **Recently updated issues across the instance:**
    ```bash
-   scripts/jira.sh lsre recent 20
+   go run ~/.claude/scripts/jira-navigator/main.go lsre recent 20
    ```
 
 2. **Changes to issues you are watching (primary use case):**
    ```bash
-   scripts/jira.sh lsre watch-changes 7
+   go run ~/.claude/scripts/jira-navigator/main.go lsre watch-changes 7
    ```
 
-3. **Unresolved watched issues:** `scripts/jira.sh lsre watched 25`
-4. **Your open issues:** `scripts/jira.sh lsre my-issues 25`
+3. **Unresolved watched issues:** `go run ~/.claude/scripts/jira-navigator/main.go lsre watched 25`
+4. **Your open issues:** `go run ~/.claude/scripts/jira-navigator/main.go lsre my-issues 25`
 
 ### Searching and Looking Up Issues
 
 5. **JQL search** (most flexible):
    ```bash
-   scripts/jira.sh lsre search 'project = "PROJ" AND status = "In Progress"' 10
+   go run ~/.claude/scripts/jira-navigator/main.go lsre search 'project = "PROJ" AND status = "In Progress"' 10
    ```
 
-6. **Full issue details:** `scripts/jira.sh lsre issue PROJ-123`
-7. **Compact issue metadata (JSON):** `scripts/jira.sh lsre issue-info PROJ-123`
-8. **Issue comments:** `scripts/jira.sh lsre comments PROJ-123`
-9. **Issue changelog:** `scripts/jira.sh lsre changelog PROJ-123 10`
-10. **Available status transitions:** `scripts/jira.sh lsre transitions PROJ-123`
+6. **Full issue details:** `go run ~/.claude/scripts/jira-navigator/main.go lsre issue PROJ-123`
+7. **Compact issue metadata (JSON):** `go run ~/.claude/scripts/jira-navigator/main.go lsre issue-info PROJ-123`
+8. **Issue comments:** `go run ~/.claude/scripts/jira-navigator/main.go lsre comments PROJ-123`
+9. **Issue changelog:** `go run ~/.claude/scripts/jira-navigator/main.go lsre changelog PROJ-123 10`
+10. **Available status transitions:** `go run ~/.claude/scripts/jira-navigator/main.go lsre transitions PROJ-123`
 
 ### Projects and Structure
 
-11. **List projects:** `scripts/jira.sh lsre projects`
-12. **Project details:** `scripts/jira.sh lsre project-info PROJ`
-13. **Statuses for a project:** `scripts/jira.sh lsre statuses PROJ`
-14. **Favourite/saved filters:** `scripts/jira.sh lsre filters`
+11. **List projects:** `go run ~/.claude/scripts/jira-navigator/main.go lsre projects`
+12. **Project details:** `go run ~/.claude/scripts/jira-navigator/main.go lsre project-info PROJ`
+13. **Statuses for a project:** `go run ~/.claude/scripts/jira-navigator/main.go lsre statuses PROJ`
+14. **Favourite/saved filters:** `go run ~/.claude/scripts/jira-navigator/main.go lsre filters`
 
 ### Agile (Boards & Sprints)
 
-15. **List boards:** `scripts/jira.sh lsre boards`
-16. **Sprints on a board:** `scripts/jira.sh lsre sprints 42 active`
+15. **List boards:** `go run ~/.claude/scripts/jira-navigator/main.go lsre boards`
+16. **Sprints on a board:** `go run ~/.claude/scripts/jira-navigator/main.go lsre sprints 42 active`
     State: `active`, `closed`, or `future`.
-17. **Issues in a sprint:** `scripts/jira.sh lsre sprint-issues 100`
+17. **Issues in a sprint:** `go run ~/.claude/scripts/jira-navigator/main.go lsre sprint-issues 100`
 
 ### Utility
 
-18. **Current user:** `scripts/jira.sh lsre whoami`
-19. **Test connection:** `scripts/jira.sh lsre test`
+18. **Current user:** `go run ~/.claude/scripts/jira-navigator/main.go lsre whoami`
+19. **Test connection:** `go run ~/.claude/scripts/jira-navigator/main.go lsre test`
 
 ## JQL Reference
 
