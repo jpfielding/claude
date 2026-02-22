@@ -183,6 +183,32 @@ func (c *apiClient) get(endpoint string, params url.Values) (json.RawMessage, er
 	return json.RawMessage(body), nil
 }
 
+func (c *apiClient) post(endpoint string, payload any) (json.RawMessage, error) {
+	u := c.baseURL + "/rest/api" + endpoint
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+	req, err := http.NewRequest("POST", u, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.password)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("API returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	return json.RawMessage(body), nil
+}
+
 // ── Output helpers ──────────────────────────────────────────
 
 func die(format string, args ...any) {
@@ -761,6 +787,120 @@ func cmdHistory(c *apiClient, args []string) {
 	}
 }
 
+func cmdCreatePage(c *apiClient, args []string) {
+	if len(args) < 2 {
+		die("Usage: create-page <space-key> <page-title> [parent-page-id] [content]")
+	}
+	spaceKey := args[0]
+	pageTitle := args[1]
+	parentID := ""
+	content := ""
+	if len(args) > 2 {
+		parentID = args[2]
+	}
+	if len(args) > 3 {
+		content = args[3]
+	}
+
+	payload := map[string]any{
+		"type":  "page",
+		"title": pageTitle,
+		"space": map[string]any{
+			"key": spaceKey,
+		},
+		"body": map[string]any{
+			"storage": map[string]any{
+				"value":          content,
+				"representation": "storage",
+			},
+		},
+	}
+	if parentID != "" {
+		payload["ancestors"] = []map[string]any{
+			{"id": parentID},
+		}
+	}
+
+	data, err := c.post("/content", payload)
+	if err != nil {
+		die("%s", err)
+	}
+	var m map[string]any
+	json.Unmarshal(data, &m)
+
+	space := jsonMap(m, "space")
+	links := jsonMap(m, "_links")
+	webUI := ""
+	if links != nil {
+		webUI = jsonStr(links, "webui")
+		if webUI != "" && !strings.HasPrefix(webUI, "http") {
+			webUI = c.baseURL + webUI
+		}
+	}
+
+	out := map[string]any{
+		"id":    jsonStr(m, "id"),
+		"title": jsonStr(m, "title"),
+		"space": map[string]any{
+			"key":  jsonStr(space, "key"),
+			"name": jsonStr(space, "name"),
+		},
+		"url": webUI,
+	}
+	printJSON(out)
+}
+
+func cmdCreateSpace(c *apiClient, args []string) {
+	if len(args) < 2 {
+		die("Usage: create-space <space-key> <space-name> [description]")
+	}
+	spaceKey := args[0]
+	spaceName := args[1]
+	description := ""
+	if len(args) > 2 {
+		description = args[2]
+	}
+
+	payload := map[string]any{
+		"key":  spaceKey,
+		"name": spaceName,
+		"type": "personal",
+	}
+	if description != "" {
+		payload["description"] = map[string]any{
+			"plain": map[string]any{
+				"value":          description,
+				"representation": "plain",
+			},
+		}
+	}
+
+	data, err := c.post("/space", payload)
+	if err != nil {
+		die("%s", err)
+	}
+	var m map[string]any
+	json.Unmarshal(data, &m)
+
+	links := jsonMap(m, "_links")
+	webUI := ""
+	if links != nil {
+		webUI = jsonStr(links, "webui")
+		if webUI != "" && !strings.HasPrefix(webUI, "http") {
+			webUI = c.baseURL + webUI
+		}
+	}
+
+	out := map[string]any{
+		"key":  jsonStr(m, "key"),
+		"name": jsonStr(m, "name"),
+		"id":   jsonStr(m, "id"),
+		"type": jsonStr(m, "type"),
+		"url":  webUI,
+	}
+	printJSON(out)
+}
+
 // ── Help ────────────────────────────────────────────────────
 
 func printHelp() {
@@ -777,6 +917,8 @@ Commands (first arg is hostname or unique substring from ~/.netrc):
   <host> watch-changes [days]       Changes to watched content (default: 7 days)
   <host> search <CQL> [limit]       Search via CQL
   <host> spaces [limit]             List spaces
+  <host> create-space <key> <name> [desc]  Create a personal space
+  <host> create-page <space-key> <title> [parent-id] [content]  Create a page
   <host> space-pages <key> [limit]  Pages in a space
   <host> page <id> [format]         Get page content
   <host> page-info <id>             Get page metadata
@@ -829,6 +971,10 @@ func main() {
 		cmdSearch(client, cmdArgs)
 	case "spaces":
 		cmdSpaces(client, cmdArgs)
+	case "create-space":
+		cmdCreateSpace(client, cmdArgs)
+	case "create-page":
+		cmdCreatePage(client, cmdArgs)
 	case "space-pages":
 		cmdSpacePages(client, cmdArgs)
 	case "page":
