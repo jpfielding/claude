@@ -17,7 +17,7 @@ go run ~/.claude/scripts/jira-navigator/main.go discover myorg   # custom substr
 
 Test a connection (use hostname or substring):
 ```bash
-go run ~/.claude/scripts/jira-navigator/main.go lsre test
+go run ~/.claude/scripts/jira-navigator/main.go acme test
 ```
 
 ## Commands
@@ -30,48 +30,48 @@ All commands: `go run ~/.claude/scripts/jira-navigator/main.go <host> <command> 
 
 1. **Recently updated issues across the instance:**
    ```bash
-   go run ~/.claude/scripts/jira-navigator/main.go lsre recent 20
+   go run ~/.claude/scripts/jira-navigator/main.go acme recent 20
    ```
 
 2. **Changes to issues you are watching (primary use case):**
    ```bash
-   go run ~/.claude/scripts/jira-navigator/main.go lsre watch-changes 7
+   go run ~/.claude/scripts/jira-navigator/main.go acme watch-changes 7
    ```
 
-3. **Unresolved watched issues:** `go run ~/.claude/scripts/jira-navigator/main.go lsre watched 25`
-4. **Your open issues:** `go run ~/.claude/scripts/jira-navigator/main.go lsre my-issues 25`
+3. **Unresolved watched issues:** `go run ~/.claude/scripts/jira-navigator/main.go acme watched 25`
+4. **Your open issues:** `go run ~/.claude/scripts/jira-navigator/main.go acme my-issues 25`
 
 ### Searching and Looking Up Issues
 
 5. **JQL search** (most flexible):
    ```bash
-   go run ~/.claude/scripts/jira-navigator/main.go lsre search 'project = "PROJ" AND status = "In Progress"' 10
+   go run ~/.claude/scripts/jira-navigator/main.go acme search 'project = "PROJ" AND status = "In Progress"' 10
    ```
 
-6. **Full issue details:** `go run ~/.claude/scripts/jira-navigator/main.go lsre issue PROJ-123`
-7. **Compact issue metadata (JSON):** `go run ~/.claude/scripts/jira-navigator/main.go lsre issue-info PROJ-123`
-8. **Issue comments:** `go run ~/.claude/scripts/jira-navigator/main.go lsre comments PROJ-123`
-9. **Issue changelog:** `go run ~/.claude/scripts/jira-navigator/main.go lsre changelog PROJ-123 10`
-10. **Available status transitions:** `go run ~/.claude/scripts/jira-navigator/main.go lsre transitions PROJ-123`
+6. **Full issue details:** `go run ~/.claude/scripts/jira-navigator/main.go acme issue PROJ-123`
+7. **Compact issue metadata (JSON):** `go run ~/.claude/scripts/jira-navigator/main.go acme issue-info PROJ-123`
+8. **Issue comments:** `go run ~/.claude/scripts/jira-navigator/main.go acme comments PROJ-123`
+9. **Issue changelog:** `go run ~/.claude/scripts/jira-navigator/main.go acme changelog PROJ-123 10`
+10. **Available status transitions:** `go run ~/.claude/scripts/jira-navigator/main.go acme transitions PROJ-123`
 
 ### Projects and Structure
 
-11. **List projects:** `go run ~/.claude/scripts/jira-navigator/main.go lsre projects`
-12. **Project details:** `go run ~/.claude/scripts/jira-navigator/main.go lsre project-info PROJ`
-13. **Statuses for a project:** `go run ~/.claude/scripts/jira-navigator/main.go lsre statuses PROJ`
-14. **Favourite/saved filters:** `go run ~/.claude/scripts/jira-navigator/main.go lsre filters`
+11. **List projects:** `go run ~/.claude/scripts/jira-navigator/main.go acme projects`
+12. **Project details:** `go run ~/.claude/scripts/jira-navigator/main.go acme project-info PROJ`
+13. **Statuses for a project:** `go run ~/.claude/scripts/jira-navigator/main.go acme statuses PROJ`
+14. **Favourite/saved filters:** `go run ~/.claude/scripts/jira-navigator/main.go acme filters`
 
 ### Agile (Boards & Sprints)
 
-15. **List boards:** `go run ~/.claude/scripts/jira-navigator/main.go lsre boards`
-16. **Sprints on a board:** `go run ~/.claude/scripts/jira-navigator/main.go lsre sprints 42 active`
+15. **List boards:** `go run ~/.claude/scripts/jira-navigator/main.go acme boards`
+16. **Sprints on a board:** `go run ~/.claude/scripts/jira-navigator/main.go acme sprints 42 active`
     State: `active`, `closed`, or `future`.
-17. **Issues in a sprint:** `go run ~/.claude/scripts/jira-navigator/main.go lsre sprint-issues 100`
+17. **Issues in a sprint:** `go run ~/.claude/scripts/jira-navigator/main.go acme sprint-issues 100`
 
 ### Utility
 
-18. **Current user:** `go run ~/.claude/scripts/jira-navigator/main.go lsre whoami`
-19. **Test connection:** `go run ~/.claude/scripts/jira-navigator/main.go lsre test`
+18. **Current user:** `go run ~/.claude/scripts/jira-navigator/main.go acme whoami`
+19. **Test connection:** `go run ~/.claude/scripts/jira-navigator/main.go acme test`
 
 ## JQL Reference
 
