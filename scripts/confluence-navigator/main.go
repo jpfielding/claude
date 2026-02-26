@@ -209,6 +209,32 @@ func (c *apiClient) post(endpoint string, payload any) (json.RawMessage, error) 
 	return json.RawMessage(body), nil
 }
 
+func (c *apiClient) put(endpoint string, payload any) (json.RawMessage, error) {
+	u := c.baseURL + "/rest/api" + endpoint
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+	req, err := http.NewRequest("PUT", u, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.password)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("API returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	return json.RawMessage(body), nil
+}
+
 // ── Output helpers ──────────────────────────────────────────
 
 func die(format string, args ...any) {
@@ -850,6 +876,89 @@ func cmdCreatePage(c *apiClient, args []string) {
 	printJSON(out)
 }
 
+func cmdUpdatePage(c *apiClient, args []string) {
+	if len(args) < 2 {
+		die("Usage: update-page <page-id> <content> [mode: replace|append]")
+	}
+	pageID := args[0]
+	content := args[1]
+	mode := "replace"
+	if len(args) > 2 {
+		mode = args[2]
+	}
+	if mode != "replace" && mode != "append" {
+		die("Usage: update-page <page-id> <content> [mode: replace|append]")
+	}
+
+	params := url.Values{
+		"expand": {"title,type,space,version,body.storage"},
+	}
+	data, err := c.get("/content/"+pageID, params)
+	if err != nil {
+		die("%s", err)
+	}
+	var page map[string]any
+	json.Unmarshal(data, &page)
+
+	currentVersion, err := strconv.Atoi(jsonStr(jsonMap(page, "version"), "number"))
+	if err != nil {
+		die("failed to parse current page version: %v", err)
+	}
+
+	finalContent := content
+	if mode == "append" {
+		existing := ""
+		if body := jsonMap(page, "body"); body != nil {
+			if storage := jsonMap(body, "storage"); storage != nil {
+				existing = jsonStr(storage, "value")
+			}
+		}
+		finalContent = existing + content
+	}
+
+	payload := map[string]any{
+		"id":    pageID,
+		"type":  strOr(jsonStr(page, "type"), "page"),
+		"title": jsonStr(page, "title"),
+		"space": map[string]any{
+			"key": jsonStr(jsonMap(page, "space"), "key"),
+		},
+		"body": map[string]any{
+			"storage": map[string]any{
+				"value":          finalContent,
+				"representation": "storage",
+			},
+		},
+		"version": map[string]any{
+			"number": currentVersion + 1,
+		},
+	}
+
+	updatedData, err := c.put("/content/"+pageID, payload)
+	if err != nil {
+		die("%s", err)
+	}
+	var updated map[string]any
+	json.Unmarshal(updatedData, &updated)
+
+	links := jsonMap(updated, "_links")
+	webUI := ""
+	if links != nil {
+		webUI = jsonStr(links, "webui")
+		if webUI != "" && !strings.HasPrefix(webUI, "http") {
+			webUI = c.baseURL + webUI
+		}
+	}
+
+	out := map[string]any{
+		"id":      jsonStr(updated, "id"),
+		"title":   jsonStr(updated, "title"),
+		"version": jsonStr(jsonMap(updated, "version"), "number"),
+		"url":     webUI,
+	}
+	printJSON(out)
+}
+
 func cmdCreateSpace(c *apiClient, args []string) {
 	if len(args) < 2 {
 		die("Usage: create-space <space-key> <space-name> [description]")
@@ -919,6 +1028,7 @@ Commands (first arg is hostname or unique substring from ~/.netrc):
   <host> spaces [limit]             List spaces
   <host> create-space <key> <name> [desc]  Create a personal space
   <host> create-page <space-key> <title> [parent-id] [content]  Create a page
+  <host> update-page <id> <content> [replace|append]  Update page content
   <host> space-pages <key> [limit]  Pages in a space
   <host> page <id> [format]         Get page content
   <host> page-info <id>             Get page metadata
@@ -975,6 +1085,8 @@ func main() {
 		cmdCreateSpace(client, cmdArgs)
 	case "create-page":
 		cmdCreatePage(client, cmdArgs)
+	case "update-page":
+		cmdUpdatePage(client, cmdArgs)
 	case "space-pages":
 		cmdSpacePages(client, cmdArgs)
 	case "page":
