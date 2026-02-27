@@ -1,31 +1,41 @@
-// voxel2dicos reads a raw voxel volume exported from Blender and writes
-// a multi-frame DICOS CT Image file. The volume is stored as axial slices
-// (one frame per Z-level), preserving the three standard CT viewing planes:
-//   - Axial   (XY plane, one per frame)
-//   - Coronal (XZ plane, reconstructed from frames)
-//   - Sagittal (YZ plane, reconstructed from frames)
-//
-// Usage:
-//
-//	go run . [raw_input] [dcs_output]
-//	go run . tmp/voxels.raw tmp/bag_ct.dcs
+// voxel2dicos reads a raw voxel volume and optional threats.json exported
+// from Blender and writes DICOS files:
+//   - CT Image (.dcs) — multi-frame volume, one axial slice per frame
+//   - TDR (.dcs) — Threat Detection Report with PTO bounding boxes (if threats present)
 package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"os"
+	"path/filepath"
+	"strings"
 
-	"github.com/jpfielding/dicos.go/pkg/dicos"
+	"gitlab.ses.psdo.leidos.com/enterprise-security-platform/prosight-devices/dicos.go/pkg/dicos"
 )
 
-// rawHeader matches the binary layout written by the Blender voxelizer.
 type rawHeader struct {
 	Width, Height, Depth         uint32
 	SpacingX, SpacingY, SpacingZ float64
 	OriginX, OriginY, OriginZ   float64
+}
+
+type threatFile struct {
+	Threats []threatEntry `json:"threats"`
+}
+
+type threatEntry struct {
+	Label      string  `json:"label"`
+	Category   string  `json:"category"`
+	Flag       string  `json:"flag"`
+	Probability float64 `json:"probability"`
+	BBoxMM     struct {
+		Min [3]float64 `json:"min"`
+		Max [3]float64 `json:"max"`
+	} `json:"bbox_mm"`
 }
 
 func main() {
@@ -38,6 +48,9 @@ func main() {
 	if len(os.Args) > 2 {
 		outPath = os.Args[2]
 	}
+
+	// Derive threats.json path from raw path directory
+	threatsPath := filepath.Join(filepath.Dir(rawPath), "threats.json")
 
 	// --- Read raw volume ---
 	f, err := os.Open(rawPath)
@@ -65,7 +78,6 @@ func main() {
 		log.Fatalf("read voxels: %v", err)
 	}
 
-	// Compute min/max for window/level
 	var vmin, vmax uint16 = math.MaxUint16, 0
 	var nonzero int
 	for _, v := range voxels {
@@ -84,77 +96,124 @@ func main() {
 	// --- Build DICOS CT Image ---
 	ct := dicos.NewCTImage()
 
-	// Patient / Study / Series metadata
-	ct.Patient.SetPatientName("BlenderSim", "CarryOn", "", "", "")
+	ct.Patient.SetPatientName("BlenderSim", "Screening", "", "", "")
 	ct.Patient.PatientID = "BAG-CT-001"
 	ct.Series.Modality = "CT"
-	ct.Series.SeriesDescription = "Simulated CT scan of carry-on bag in screening tray"
+	ct.Series.SeriesDescription = "Simulated CT scan — airport screening tray"
 	ct.Series.SeriesNumber = 1
 	ct.Study.StudyDescription = "Airport Security Screening Simulation"
 	ct.Equipment.Manufacturer = "dicos.go Blender Voxelizer"
 	ct.Equipment.StationName = "BLENDER-SIM"
 	ct.Equipment.InstitutionName = "DICOS.go Project"
 
-	// CT Image parameters (simulated Smiths HI-SCAN 6040 CTiX)
-	ct.CTImageMod.KVP = 140                   // Dual-energy CT typically 80/140 kV
-	ct.CTImageMod.ExposureTime = 500           // ms
-	ct.CTImageMod.XRayTubeCurrent = 300        // mA
+	ct.CTImageMod.KVP = 140
+	ct.CTImageMod.ExposureTime = 500
+	ct.CTImageMod.XRayTubeCurrent = 300
 	ct.CTImageMod.FilterType = "BODY"
 	ct.CTImageMod.ConvolutionKernel = "STANDARD"
 	ct.CTImageMod.AcquisitionType = "SPIRAL"
-	ct.CTImageMod.DataCollectionDiameter = 620 // Scanner tunnel width mm
-	ct.CTImageMod.ReconstructionDiameter = 640 // Matches tray width
+	ct.CTImageMod.DataCollectionDiameter = 620
+	ct.CTImageMod.ReconstructionDiameter = 640
 	ct.CTImageMod.ImageType = []string{"ORIGINAL", "PRIMARY", "AXIAL"}
 
-	// Rescale: stored values map to approximate Hounsfield-like units
-	// RescaleIntercept = -1024, so air (stored 0) → HU -1024
-	// Water stored ~1024 → HU 0
 	ct.RescaleIntercept = -1024.0
 	ct.RescaleSlope = 1.0
 	ct.RescaleType = "HU"
 
-	// Window/Level presets for viewing
-	ct.CTImageMod.WindowCenter = 2000
-	ct.CTImageMod.WindowWidth = 6000
+	ct.CTImageMod.WindowCenter = 1500
+	ct.CTImageMod.WindowWidth = 4000
 
-	// Image Plane
-	ct.ImagePlane.PixelSpacing = [2]float64{hdr.SpacingY, hdr.SpacingX} // row\col
+	ct.ImagePlane.PixelSpacing = [2]float64{hdr.SpacingY, hdr.SpacingX}
 	ct.ImagePlane.SliceThickness = hdr.SpacingZ
 	ct.ImagePlane.SpacingBetweenSlices = hdr.SpacingZ
-	ct.ImagePlane.ImageOrientationPatient = [6]float64{1, 0, 0, 0, 1, 0} // Standard axial
+	ct.ImagePlane.ImageOrientationPatient = [6]float64{1, 0, 0, 0, 1, 0}
 	ct.ImagePlane.ImagePositionPatient = [3]float64{hdr.OriginX, hdr.OriginY, hdr.OriginZ}
 
-	// Frame of Reference
 	ct.FrameOfReference.FrameOfReferenceUID = dicos.GenerateUID("1.2.826.0.1.3680043.8.498.")
-	ct.FrameOfReference.PositionReferenceIndicator = "BB" // Bounding box reference
+	ct.FrameOfReference.PositionReferenceIndicator = "BB"
 
-	// Image dimensions
 	ct.Rows = height
 	ct.Columns = width
 	ct.BitsAllocated = 16
 	ct.BitsStored = 16
 	ct.HighBit = 15
-	ct.PixelRepresent = 0 // unsigned
+	ct.PixelRepresent = 0
 	ct.SamplesPerPixel = 1
 	ct.PhotometricInterp = "MONOCHROME2"
 
-	// Set pixel data: all Z slices as frames (axial view is native)
 	ct.SetPixelData(height, width, voxels)
 
-	// --- Write DICOS file ---
 	n, err := ct.Write(outPath)
 	if err != nil {
-		log.Fatalf("write DICOS: %v", err)
+		log.Fatalf("write DICOS CT: %v", err)
 	}
 
 	fmt.Printf("\nDICOS CT written: %s (%d bytes, %.1f MB)\n", outPath, n, float64(n)/1024/1024)
-	fmt.Printf("  %d frames (axial slices), %dx%d per frame\n", depth, width, height)
-	fmt.Printf("  Pixel spacing: %.2f x %.2f mm\n", hdr.SpacingX, hdr.SpacingY)
-	fmt.Printf("  Slice spacing: %.2f mm\n", hdr.SpacingZ)
-	fmt.Printf("  Transfer syntax: Explicit VR Little Endian (uncompressed)\n")
-	fmt.Printf("  Modality: CT\n")
-	fmt.Printf("\nViewing planes available from this volume:\n")
-	fmt.Printf("  Axial   (XY): %d slices at %dx%d\n", depth, width, height)
-	fmt.Printf("  Coronal (XZ): %d slices at %dx%d\n", height, width, depth)
-	fmt.Printf("  Sagittal(YZ): %d slices at %dx%d\n", width, height, depth)
+	fmt.Printf("  %d frames, %dx%d per frame\n", depth, width, height)
+	fmt.Printf("  Spacing: %.2f x %.2f x %.2f mm\n", hdr.SpacingX, hdr.SpacingY, hdr.SpacingZ)
+
+	// --- Read threats and build TDR ---
+	threatData, err := os.ReadFile(threatsPath)
+	if err != nil {
+		fmt.Printf("\nNo threats.json found — skipping TDR\n")
+		return
+	}
+
+	var tf threatFile
+	if err := json.Unmarshal(threatData, &tf); err != nil {
+		log.Fatalf("parse threats.json: %v", err)
+	}
+
+	if len(tf.Threats) == 0 {
+		fmt.Printf("\nNo threats in threats.json — skipping TDR\n")
+		return
+	}
+
+	tdr := dicos.NewThreatDetectionReport()
+	tdr.AlarmDecision = "ALARM"
+	tdr.Series.Modality = "TDR"
+	tdr.Equipment.Manufacturer = "dicos.go Blender Voxelizer"
+	tdr.ReferencedSOPClassUID = "1.2.840.10008.5.1.4.1.1.2" // CT Image Storage
+	tdr.ReferencedSOPInstanceUID = ct.SOPCommon.SOPInstanceUID
+
+	for i, t := range tf.Threats {
+		// Convert absolute mm to volume-relative mm
+		bbMin := [3]float32{
+			float32(t.BBoxMM.Min[0] - hdr.OriginX),
+			float32(t.BBoxMM.Min[1] - hdr.OriginY),
+			float32(t.BBoxMM.Min[2] - hdr.OriginZ),
+		}
+		bbMax := [3]float32{
+			float32(t.BBoxMM.Max[0] - hdr.OriginX),
+			float32(t.BBoxMM.Max[1] - hdr.OriginY),
+			float32(t.BBoxMM.Max[2] - hdr.OriginZ),
+		}
+
+		tdr.PTOs = append(tdr.PTOs, dicos.PotentialThreatObject{
+			ID:          i + 1,
+			Label:       t.Label,
+			OOIType:     t.Category,
+			Probability: float32(t.Probability),
+			Confidence:  float32(t.Probability),
+			BoundingBox: &dicos.BoundingBox{
+				TopLeft:     bbMin,
+				BottomRight: bbMax,
+			},
+		})
+
+		fmt.Printf("\n  PTO %d: %s [%s] prob=%.2f\n", i+1, t.Label, t.Category, t.Probability)
+		fmt.Printf("    BBox: [%.1f,%.1f,%.1f] - [%.1f,%.1f,%.1f] mm\n",
+			bbMin[0], bbMin[1], bbMin[2], bbMax[0], bbMax[1], bbMax[2])
+	}
+
+	tdrPath := strings.TrimSuffix(outPath, filepath.Ext(outPath)) + "_tdr.dcs"
+	tn, err := tdr.Write(tdrPath)
+	if err != nil {
+		log.Fatalf("write DICOS TDR: %v", err)
+	}
+
+	fmt.Printf("\nDICOS TDR written: %s (%d bytes)\n", tdrPath, tn)
+	fmt.Printf("  Alarm Decision: ALARM\n")
+	fmt.Printf("  %d PTOs\n", len(tdr.PTOs))
+	fmt.Printf("  References CT: %s\n", ct.SOPCommon.SOPInstanceUID)
 }
