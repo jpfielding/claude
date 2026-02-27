@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -158,13 +159,16 @@ func newClient(host string, entry netrcEntry) *apiClient {
 	}
 }
 
-func (c *apiClient) doRequest(fullURL string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", fullURL, nil)
+func (c *apiClient) doRequest(method, fullURL string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, fullURL, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("PRIVATE-TOKEN", c.password)
 	req.Header.Set("Accept", "application/json")
+	if method != "GET" {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 	return http.DefaultClient.Do(req)
 }
 
@@ -173,7 +177,7 @@ func (c *apiClient) get(endpoint string, params url.Values) (json.RawMessage, er
 	if len(params) > 0 {
 		u += "?" + params.Encode()
 	}
-	resp, err := c.doRequest(u)
+	resp, err := c.doRequest("GET", u, nil)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -190,7 +194,7 @@ func (c *apiClient) getWithHeaders(endpoint string, params url.Values) (json.Raw
 	if len(params) > 0 {
 		u += "?" + params.Encode()
 	}
-	resp, err := c.doRequest(u)
+	resp, err := c.doRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -200,6 +204,20 @@ func (c *apiClient) getWithHeaders(endpoint string, params url.Values) (json.Raw
 		return nil, nil, fmt.Errorf("API returned HTTP %d: %s", resp.StatusCode, string(body))
 	}
 	return json.RawMessage(body), resp.Header, nil
+}
+
+func (c *apiClient) post(endpoint string, form url.Values) (json.RawMessage, error) {
+	u := c.baseURL + "/api/v4" + endpoint
+	resp, err := c.doRequest("POST", u, bytes.NewBufferString(form.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("API returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	return json.RawMessage(body), nil
 }
 
 // ── Output helpers ──────────────────────────────────────────
@@ -252,6 +270,30 @@ func strOr(s, def string) string {
 		return def
 	}
 	return s
+}
+
+func defaultProjectPath(name string) string {
+	s := strings.ToLower(strings.TrimSpace(name))
+	s = strings.ReplaceAll(s, " ", "-")
+	var b strings.Builder
+	lastDash := false
+	for _, r := range s {
+		isAlphaNum := (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')
+		if isAlphaNum {
+			b.WriteRune(r)
+			lastDash = false
+			continue
+		}
+		if !lastDash {
+			b.WriteRune('-')
+			lastDash = true
+		}
+	}
+	out := strings.Trim(b.String(), "-")
+	if out == "" {
+		return "project"
+	}
+	return out
 }
 
 func asMap(v any) map[string]any {
@@ -520,21 +562,67 @@ func cmdProjectInfo(c *apiClient, args []string) {
 	var m map[string]any
 	json.Unmarshal(data, &m)
 	out := map[string]any{
-		"id":                 m["id"],
-		"name":               jsonStr(m, "name"),
-		"path":               jsonStr(m, "path_with_namespace"),
-		"description":        strOr(jsonStr(m, "description"), "none"),
-		"visibility":         jsonStr(m, "visibility"),
-		"default_branch":     strOr(jsonStr(m, "default_branch"), "main"),
-		"web_url":            jsonStr(m, "web_url"),
-		"created":            jsonStr(m, "created_at"),
-		"updated":            jsonStr(m, "last_activity_at"),
-		"creator":            m["creator_id"],
-		"topics":             m["topics"],
-		"star_count":         m["star_count"],
-		"forks_count":        m["forks_count"],
-		"open_issues_count":  m["open_issues_count"],
-		"statistics":         m["statistics"],
+		"id":                m["id"],
+		"name":              jsonStr(m, "name"),
+		"path":              jsonStr(m, "path_with_namespace"),
+		"description":       strOr(jsonStr(m, "description"), "none"),
+		"visibility":        jsonStr(m, "visibility"),
+		"default_branch":    strOr(jsonStr(m, "default_branch"), "main"),
+		"web_url":           jsonStr(m, "web_url"),
+		"created":           jsonStr(m, "created_at"),
+		"updated":           jsonStr(m, "last_activity_at"),
+		"creator":           m["creator_id"],
+		"topics":            m["topics"],
+		"star_count":        m["star_count"],
+		"forks_count":       m["forks_count"],
+		"open_issues_count": m["open_issues_count"],
+		"statistics":        m["statistics"],
+	}
+	printJSON(out)
+}
+
+func cmdCreateProject(c *apiClient, args []string) {
+	if len(args) == 0 {
+		die("Usage: create-project <name> [path] [visibility] [namespace-id]")
+	}
+	name := strings.TrimSpace(args[0])
+	if name == "" {
+		die("project name cannot be empty")
+	}
+	path := defaultProjectPath(name)
+	if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
+		path = strings.TrimSpace(args[1])
+	}
+	visibility := "private"
+	if len(args) > 2 && strings.TrimSpace(args[2]) != "" {
+		visibility = strings.TrimSpace(args[2])
+	}
+
+	form := url.Values{
+		"name":       {name},
+		"path":       {path},
+		"visibility": {visibility},
+	}
+	if len(args) > 3 && strings.TrimSpace(args[3]) != "" {
+		form.Set("namespace_id", strings.TrimSpace(args[3]))
+	}
+
+	data, err := c.post("/projects", form)
+	if err != nil {
+		die("%s", err)
+	}
+
+	var m map[string]any
+	json.Unmarshal(data, &m)
+	out := map[string]any{
+		"id":                  m["id"],
+		"name":                jsonStr(m, "name"),
+		"path_with_namespace": jsonStr(m, "path_with_namespace"),
+		"visibility":          jsonStr(m, "visibility"),
+		"default_branch":      strOr(jsonStr(m, "default_branch"), "main"),
+		"http_url_to_repo":    jsonStr(m, "http_url_to_repo"),
+		"ssh_url_to_repo":     jsonStr(m, "ssh_url_to_repo"),
+		"web_url":             jsonStr(m, "web_url"),
 	}
 	printJSON(out)
 }
@@ -857,19 +945,19 @@ func cmdIssue(c *apiClient, args []string) {
 	}
 
 	out := map[string]any{
-		"iid":       m["iid"],
-		"title":     jsonStr(m, "title"),
-		"state":     jsonStr(m, "state"),
-		"author":    jsonStr(author, "username"),
-		"assignees": assigneeNames,
-		"labels":    m["labels"],
-		"milestone": nil,
-		"created":   jsonStr(m, "created_at"),
-		"updated":   jsonStr(m, "updated_at"),
-		"closed_at": m["closed_at"],
-		"due_date":  m["due_date"],
-		"weight":    m["weight"],
-		"web_url":   jsonStr(m, "web_url"),
+		"iid":         m["iid"],
+		"title":       jsonStr(m, "title"),
+		"state":       jsonStr(m, "state"),
+		"author":      jsonStr(author, "username"),
+		"assignees":   assigneeNames,
+		"labels":      m["labels"],
+		"milestone":   nil,
+		"created":     jsonStr(m, "created_at"),
+		"updated":     jsonStr(m, "updated_at"),
+		"closed_at":   m["closed_at"],
+		"due_date":    m["due_date"],
+		"weight":      m["weight"],
+		"web_url":     jsonStr(m, "web_url"),
 		"description": strOr(jsonStr(m, "description"), "none"),
 	}
 	if milestone != nil {
@@ -1339,6 +1427,8 @@ Activity & starred:
 Projects:
   <host> projects [limit]                          Your projects (by membership)
   <host> project-info <project>                    Project details + statistics
+  <host> create-project <name> [path] [visibility] [namespace-id]
+                                                    Create a new project
 
 Merge requests:
   <host> my-mrs [state] [limit]                    MRs assigned to you
@@ -1423,6 +1513,8 @@ func main() {
 		cmdProjects(client, cmdArgs)
 	case "project-info":
 		cmdProjectInfo(client, cmdArgs)
+	case "create-project":
+		cmdCreateProject(client, cmdArgs)
 	case "my-mrs":
 		cmdMyMRs(client, cmdArgs)
 	case "mr-review":
