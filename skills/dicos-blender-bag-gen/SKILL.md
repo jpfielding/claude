@@ -134,10 +134,17 @@ Uses [github.com/jpfielding/dicos.go](https://github.com/jpfielding/dicos.go) to
 
 A bundled converter is included at [scripts/voxel2dicos/](scripts/voxel2dicos/). Copy it to the project and run:
 ```bash
-go run ./scripts/voxel2dicos/ tmp/voxels.raw tmp/bag_ct.dcs
+go run ./scripts/voxel2dicos/ tmp/voxels.raw tmp/dicos/
 ```
 
-The script reads the raw binary header + voxel data, builds a DICOS CTImage with proper modules (Patient, Study, Series, Equipment, ImagePlane, FrameOfReference, CTImage, VOILUT), and writes it as an uncompressed multi-frame `.dcs` file. See the Go source for the full tag mapping.
+The second argument is an **output directory**. The script creates:
+```
+tmp/dicos/
+├── ct.dcs    — multi-frame CT Image
+└── tdr.dcs   — Threat Detection Report (only if threats.json exists)
+```
+
+It reads the raw binary + threats.json sidecar, builds a DICOS CTImage and TDR with proper modules, and writes both into the output directory.
 
 ### 11. Generate TDR with Threat Boxes
 

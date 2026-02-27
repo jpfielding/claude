@@ -1,7 +1,12 @@
 // voxel2dicos reads a raw voxel volume and optional threats.json exported
-// from Blender and writes DICOS files:
-//   - CT Image (.dcs) — multi-frame volume, one axial slice per frame
-//   - TDR (.dcs) — Threat Detection Report with PTO bounding boxes (if threats present)
+// from Blender and writes DICOS files into an output directory:
+//   - ct.dcs  — multi-frame CT Image volume (one axial slice per frame)
+//   - tdr.dcs — Threat Detection Report with PTO bounding boxes (if threats present)
+//
+// Usage:
+//
+//	go run . <raw_input> <output_dir>
+//	go run . tmp/voxels.raw tmp/dicos/
 package main
 
 import (
@@ -12,7 +17,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"gitlab.ses.psdo.leidos.com/enterprise-security-platform/prosight-devices/dicos.go/pkg/dicos"
 )
@@ -28,11 +32,11 @@ type threatFile struct {
 }
 
 type threatEntry struct {
-	Label      string  `json:"label"`
-	Category   string  `json:"category"`
-	Flag       string  `json:"flag"`
+	Label       string  `json:"label"`
+	Category    string  `json:"category"`
+	Flag        string  `json:"flag"`
 	Probability float64 `json:"probability"`
-	BBoxMM     struct {
+	BBoxMM      struct {
 		Min [3]float64 `json:"min"`
 		Max [3]float64 `json:"max"`
 	} `json:"bbox_mm"`
@@ -40,13 +44,18 @@ type threatEntry struct {
 
 func main() {
 	rawPath := "tmp/voxels.raw"
-	outPath := "tmp/bag_ct.dcs"
+	outDir := "tmp/dicos"
 
 	if len(os.Args) > 1 {
 		rawPath = os.Args[1]
 	}
 	if len(os.Args) > 2 {
-		outPath = os.Args[2]
+		outDir = os.Args[2]
+	}
+
+	// Create output directory
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		log.Fatalf("create output dir: %v", err)
 	}
 
 	// Derive threats.json path from raw path directory
@@ -143,19 +152,19 @@ func main() {
 
 	ct.SetPixelData(height, width, voxels)
 
-	n, err := ct.Write(outPath)
+	ctPath := filepath.Join(outDir, "ct.dcs")
+	n, err := ct.Write(ctPath)
 	if err != nil {
 		log.Fatalf("write DICOS CT: %v", err)
 	}
 
-	fmt.Printf("\nDICOS CT written: %s (%d bytes, %.1f MB)\n", outPath, n, float64(n)/1024/1024)
-	fmt.Printf("  %d frames, %dx%d per frame\n", depth, width, height)
-	fmt.Printf("  Spacing: %.2f x %.2f x %.2f mm\n", hdr.SpacingX, hdr.SpacingY, hdr.SpacingZ)
+	fmt.Printf("\n%s (%d bytes, %.1f MB)\n", ctPath, n, float64(n)/1024/1024)
+	fmt.Printf("  %d frames, %dx%d, spacing %.2fx%.2fx%.2f mm\n", depth, width, height, hdr.SpacingX, hdr.SpacingY, hdr.SpacingZ)
 
 	// --- Read threats and build TDR ---
 	threatData, err := os.ReadFile(threatsPath)
 	if err != nil {
-		fmt.Printf("\nNo threats.json found — skipping TDR\n")
+		fmt.Printf("\nNo threats — TDR skipped\n")
 		return
 	}
 
@@ -165,7 +174,7 @@ func main() {
 	}
 
 	if len(tf.Threats) == 0 {
-		fmt.Printf("\nNo threats in threats.json — skipping TDR\n")
+		fmt.Printf("\nNo threats — TDR skipped\n")
 		return
 	}
 
@@ -173,11 +182,10 @@ func main() {
 	tdr.AlarmDecision = "ALARM"
 	tdr.Series.Modality = "TDR"
 	tdr.Equipment.Manufacturer = "dicos.go Blender Voxelizer"
-	tdr.ReferencedSOPClassUID = "1.2.840.10008.5.1.4.1.1.2" // CT Image Storage
+	tdr.ReferencedSOPClassUID = "1.2.840.10008.5.1.4.1.1.2"
 	tdr.ReferencedSOPInstanceUID = ct.SOPCommon.SOPInstanceUID
 
 	for i, t := range tf.Threats {
-		// Convert absolute mm to volume-relative mm
 		bbMin := [3]float32{
 			float32(t.BBoxMM.Min[0] - hdr.OriginX),
 			float32(t.BBoxMM.Min[1] - hdr.OriginY),
@@ -201,19 +209,16 @@ func main() {
 			},
 		})
 
-		fmt.Printf("\n  PTO %d: %s [%s] prob=%.2f\n", i+1, t.Label, t.Category, t.Probability)
-		fmt.Printf("    BBox: [%.1f,%.1f,%.1f] - [%.1f,%.1f,%.1f] mm\n",
+		fmt.Printf("  PTO %d: %s [%s] prob=%.2f bbox=[%.0f,%.0f,%.0f]-[%.0f,%.0f,%.0f]mm\n",
+			i+1, t.Label, t.Category, t.Probability,
 			bbMin[0], bbMin[1], bbMin[2], bbMax[0], bbMax[1], bbMax[2])
 	}
 
-	tdrPath := strings.TrimSuffix(outPath, filepath.Ext(outPath)) + "_tdr.dcs"
+	tdrPath := filepath.Join(outDir, "tdr.dcs")
 	tn, err := tdr.Write(tdrPath)
 	if err != nil {
 		log.Fatalf("write DICOS TDR: %v", err)
 	}
 
-	fmt.Printf("\nDICOS TDR written: %s (%d bytes)\n", tdrPath, tn)
-	fmt.Printf("  Alarm Decision: ALARM\n")
-	fmt.Printf("  %d PTOs\n", len(tdr.PTOs))
-	fmt.Printf("  References CT: %s\n", ct.SOPCommon.SOPInstanceUID)
+	fmt.Printf("%s (%d bytes) — ALARM, %d PTOs\n", tdrPath, tn, len(tdr.PTOs))
 }

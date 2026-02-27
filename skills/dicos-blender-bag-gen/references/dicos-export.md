@@ -242,13 +242,21 @@ tdr.Write("tmp/bag_ct_tdr.dcs")
 | Bounding Box Bottom Right (4010,1024) | [x,y,z] float32 mm | Max corner |
 | Referenced SOP Instance UID (0008,1155) | UID string | Links to source CT |
 
-## Output Files
+## Output Directory
 
-After export, `tmp/` contains:
+The converter writes all DICOS files into a single output directory:
 
-| File | Type | Description |
-|------|------|-------------|
-| `voxels.raw` | Binary | Raw uint16 volume + header |
-| `threats.json` | JSON | Threat bounding boxes (sidecar) |
-| `bag_ct.dcs` | DICOS CT | Multi-frame CT image |
-| `bag_ct_tdr.dcs` | DICOS TDR | Threat detection report (if threats) |
+```bash
+go run ./scripts/voxel2dicos/ tmp/voxels.raw tmp/dicos/
+```
+
+```
+tmp/
+├── voxels.raw         # Intermediate: raw uint16 volume + header
+├── threats.json       # Intermediate: threat bounding boxes (sidecar)
+└── dicos/             # Final output directory
+    ├── ct.dcs         # DICOS CT Image (multi-frame volume)
+    └── tdr.dcs        # DICOS TDR (only if threats present)
+```
+
+All DICOS files for a single scan belong in the same directory. The TDR references the CT by SOP Instance UID.
