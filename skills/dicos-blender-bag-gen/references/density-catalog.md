@@ -2,37 +2,86 @@
 
 Material-to-density mapping and item geometry specs for all bag contents and tray items.
 
-## Density Scale (uint16 voxel values)
+## CT Attenuation Physics
 
-| Value | Material Class | CT Appearance |
-|-------|---------------|---------------|
-| 0 | Air | Black/transparent |
-| 800 | Very thin fabric (underwear, socks, tissues) | Barely visible |
-| 1200 | Light fabric (t-shirts, chinos, shoe uppers) | Faint blue |
-| 1500 | Paper/cardboard (books, magazines, business cards) | Dim |
-| 1800 | Denim, rubber, leather, elastic | Slightly brighter |
-| 2000 | Organic food (fruit, sandwiches, snack bars) | Visible green |
-| 3000 | Bag shell (nylon/polyester/canvas) | Clear outline |
-| 3500 | Liquids (water, shampoo, cosmetics, deodorant) | Teal/cyan |
-| 4000 | Tray (polypropylene) | Strong outline |
-| 5000 | Foil/thin aluminum | Bright |
-| 7000 | Electronics (circuit boards, screens, batteries) | Amber/orange |
-| 15000 | Structural metal (zippers, buckles, coins, keys, watch) | Bright white |
-| 20000 | Dense/threat metal (knife blade, gun barrel) | Maximum |
+A CT scanner measures X-ray attenuation in **Hounsfield Units (HU)**. The stored uint16 voxel value relates to HU via:
+
+```
+HU = stored_value * RescaleSlope + RescaleIntercept
+stored_value = HU - RescaleIntercept  (with slope=1.0, intercept=-1024)
+stored_value = HU + 1024
+```
+
+Attenuation depends on material **density** (g/cm³) and **effective atomic number (Z_eff)**:
+- Low-Z organics (C, H, O, N): fabrics, food, plastics, explosives — low HU
+- Medium-Z materials (Si, Ca, P): glass, bone, ceramics — medium HU
+- High-Z metals (Fe, Cu, Zn, Pb): steel, brass, copper wire — very high HU
+
+Security CT scanners (e.g., Smiths HI-SCAN 6040 CTiX at 140kV) measure single- or dual-energy attenuation to discriminate materials.
+
+## Density Scale
+
+Grounded in real CT attenuation values at ~140kV. `stored = HU + 1024`.
+
+| Stored | HU (approx) | Material | Composition | Density g/cm³ |
+|--------|-------------|----------|-------------|---------------|
+| 0 | -1024 | Air | N₂/O₂ | 0.001 |
+| 124 | -900 | Styrofoam/padding | Polystyrene foam | 0.03 |
+| 224 | -800 | Loose cotton/silk (underwear, socks) | Cellulose fiber, ~60% air | 0.05-0.10 |
+| 424 | -600 | Light fabric (t-shirts, chinos) | Cotton/polyester, folded | 0.15-0.25 |
+| 524 | -500 | Paper, cardboard | Cellulose | 0.2-0.4 |
+| 624 | -400 | Denim, canvas | Dense woven cotton | 0.3-0.5 |
+| 724 | -300 | Wood (handle, bat) | Cellulose/lignin | 0.4-0.7 |
+| 824 | -200 | Leather, rubber | Protein/polymer | 0.5-0.9 |
+| 924 | -100 | Fat, chocolate, wax | Hydrocarbon | 0.9 |
+| 1024 | 0 | Water, aqueous liquids | H₂O | 1.00 |
+| 1074 | +50 | Nylon, polyester (bag shell) | Polyamide | 1.04-1.15 |
+| 1124 | +100 | Soft food (bread, fruit flesh) | ~85% water + organic | 1.0-1.1 |
+| 1174 | +150 | Polypropylene (tray), hard plastic | PP, ABS, PVC | 0.9-1.4 |
+| 1224 | +200 | Dense food (cheese, meat) | Protein + fat + water | 1.0-1.1 |
+| 1524 | +500 | Bone-like, ceramic | Ca compounds | 1.5-2.0 |
+| 2024 | +1000 | Glass (bottles, lenses) | SiO₂ | 2.2-2.5 |
+| 2524 | +1500 | Fiberglass, PCB substrate | Glass + epoxy resin | 1.8-2.0 |
+| 3024 | +2000 | Aluminum (cans, foil, frame) | Al, Z=13 | 2.7 |
+| 4024 | +3000 | Lithium battery cells | Li + Cu + Al + electrolyte | 2.5-3.0 |
+| 5024 | +4000 | Titanium | Ti, Z=22 | 4.5 |
+| 7024 | +6000 | Steel, stainless (knife, tools) | Fe, Z=26 | 7.8 |
+| 8024 | +7000 | Brass (keys, buckles, ammo) | Cu/Zn, Z~29 | 8.5 |
+| 9024 | +8000 | Copper (wire, PCB traces) | Cu, Z=29 | 8.9 |
+| 12024 | +11000 | Lead (solder, weights) | Pb, Z=82 | 11.3 |
+| 15024 | +14000 | Gold (jewelry) | Au, Z=79 | 19.3 |
+| 20024 | +19000 | Tungsten (counterweights) | W, Z=74 | 19.3 |
 
 ## Material Name Map
 
 ```python
 DENSITY_MAP = {
-    'CT_BagShell': 3000, 'CT_Tray': 4000,
-    'CT_Fabric_Low': 1200, 'CT_Denim': 1800,
-    'CT_Underwear': 800, 'CT_Paper': 1500,
-    'CT_Food': 2000, 'CT_Foil': 5000,
-    'CT_Liquid_Medium': 3500, 'CT_Leather': 1800,
-    'CT_Electronics': 7000, 'CT_Glass': 3500,
-    'CT_Metal_High': 15000, 'CT_Threat_Metal': 20000,
+    # Stored uint16 values (HU + 1024)
+    'CT_Underwear':      224,   # loose cotton, ~60% air, -800 HU
+    'CT_Fabric_Low':     424,   # folded t-shirts, chinos, -600 HU
+    'CT_Paper':          524,   # books, cardboard, -500 HU
+    'CT_Denim':          624,   # jeans, canvas, heavy fabric, -400 HU
+    'CT_Wood':           724,   # wooden handles, bats, -300 HU
+    'CT_Leather':        824,   # belts, purse body, shoe leather, -200 HU
+    'CT_Food':           1124,  # fruit, sandwich, organic food, +100 HU
+    'CT_Liquid_Medium':  1024,  # water, shampoo, drinks, 0 HU (water)
+    'CT_BagShell':       1074,  # nylon/polyester bag fabric, +50 HU
+    'CT_Tray':           1174,  # polypropylene tray, +150 HU
+    'CT_Glass':          2024,  # glass bottles, perfume, lenses, +1000 HU
+    'CT_Electronics':    2524,  # PCBs, screens, circuit boards, +1500 HU
+    'CT_Aluminum':       3024,  # aluminum frame, foil, cans, +2000 HU
+    'CT_Battery':        4024,  # lithium cells, power banks, +3000 HU
+    'CT_Metal_High':     7024,  # steel zippers, knife blades, screws, +6000 HU
+    'CT_Brass':          8024,  # keys, buckles, ammo casings, +7000 HU
+    'CT_Copper':         9024,  # wire cores, connectors, +8000 HU
+    'CT_Threat_Metal':   7024,  # same as steel — a knife IS steel, +6000 HU
 }
 ```
+
+**Notes:**
+- `CT_Threat_Metal` uses the same value as `CT_Metal_High` (steel) because a steel knife blade IS steel — it has no special magical density. The threat is identified by shape/context in the TDR, not by a different attenuation value.
+- Very thin objects (zipper teeth, foil, wire) may appear brighter than their bulk density suggests because partial-volume averaging with air raises apparent HU at the boundary.
+- Dual-energy CT can separate materials by Z_eff even when they have similar density (e.g., organic explosive vs. cheese vs. plastic).
 
 ## Item Catalog
 
@@ -57,12 +106,12 @@ DENSITY_MAP = {
 
 | Item | Object Name | Geometry | Material | Notes |
 |------|------------|----------|----------|-------|
-| Laptop | CT_Laptop | Cube 0.005x0.14x0.09 | CT_Electronics | Add battery cube as CT_Metal_High |
-| Tablet/iPad | CT_Tablet | Cube 0.004x0.09x0.065 | CT_Electronics | Add battery as CT_Metal_High |
-| Phone | CT_Phone | Cube 0.003x0.035x0.07 | CT_Electronics | Add battery as CT_Metal_High |
-| Power bank | CT_PowerBank | Cube 0.035x0.02x0.008 | CT_Electronics | Add cell cylinder as CT_Metal_High |
-| Earbuds case | CT_EarbudsCase | UV sphere r=0.015 squash | CT_Electronics | Add battery as CT_Metal_High |
-| USB cable (coiled) | CT_USBCable | Torus major=0.03 minor=0.002 | CT_Metal_High | |
+| Laptop | CT_Laptop | Cube 0.005x0.14x0.09 | CT_Electronics | Add CT_Battery cube for Li-ion cell |
+| Tablet/iPad | CT_Tablet | Cube 0.004x0.09x0.065 | CT_Electronics | Add battery as CT_Battery |
+| Phone | CT_Phone | Cube 0.003x0.035x0.07 | CT_Electronics | Add battery as CT_Battery |
+| Power bank | CT_PowerBank | Cube 0.035x0.02x0.008 | CT_Electronics | Add CT_Battery cylinder for Li-ion cell |
+| Earbuds case | CT_EarbudsCase | UV sphere r=0.015 squash | CT_Electronics | Add battery as CT_Battery |
+| USB cable (coiled) | CT_USBCable | Torus major=0.03 minor=0.002 | CT_Copper | Copper wire core |
 | Power adapter | CT_PowerAdapter | Cube 0.02x0.015x0.01 | CT_Electronics | |
 | Camera body | CT_Camera | Cube 0.06x0.04x0.035 | CT_Electronics | Dense internals |
 | Camera lens | CT_CameraLens | Cylinder r=0.025 d=0.04 | CT_Glass | Glass elements |
@@ -94,7 +143,7 @@ DENSITY_MAP = {
 |------|------------|----------|----------|-------|
 | Water bottle | CT_WaterBottle | Cylinder r=0.03 d=0.18 | CT_Liquid_Medium | Metal cap CT_Metal_High |
 | Sandwich | CT_Sandwich | Cube 0.06x0.04x0.025 | CT_Food | |
-| Snack bars | CT_SnackBar_N | Cube 0.04x0.015x0.008 | CT_Food | Foil wrapper CT_Foil |
+| Snack bars | CT_SnackBar_N | Cube 0.04x0.015x0.008 | CT_Food | Foil wrapper CT_Aluminum |
 | Apple/fruit | CT_Apple | UV sphere r=0.035 | CT_Food | |
 | Trail mix | CT_TrailMix | Cube 0.04x0.03x0.03 | CT_Food | |
 | Gum/mints | CT_Gum | Cube 0.03x0.02x0.008 | CT_Food | |

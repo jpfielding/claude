@@ -41,15 +41,20 @@ A second tray for loose personal items is common: watch, belt, phone, wallet, sh
 
 ### 2. Create Screening Tray
 
-See [references/tray-specs.md](references/tray-specs.md) for exact TSA tray dimensions.
+Default: **standard flat tray** (660 x 420 x 75mm). See [references/tray-specs.md](references/tray-specs.md) for all sizes and geometry.
 
-**Key rule: nothing penetrates the tray.** The tray is the outermost container. All items (bags and loose objects) sit ON the tray floor, inside the tray walls, with clearance gaps.
+**The tray is solid. Nothing may overlap or intersect with it.** This is the most important constraint in the entire workflow.
 
-```
-Tray interior floor = tray_z_min + wall_thickness (~4mm)
-Container bottom Z  = tray floor + 1mm clearance
-Container XY extent < tray interior XY (with ~10mm gap per side)
-```
+- Items sit on tray floor at Z=0.005m (4mm floor + 1mm gap)
+- All items must stay within tray interior XY bounds (±320mm X, ±200mm Y) with 5mm clearance
+- Items may extend ABOVE the tray rim — that is normal
+- **No stacking bags on bags.** If multiple containers don't fit side-by-side, downsize them until they do
+- Gaps between items in the tray are fine
+- During voxelization, tray voxels are never overwritten
+
+**Gravity rule:** Every object must sit on something — the tray floor or another object's top surface. Nothing floats. Items inside bags rest on the bag floor or on items below them. Track running Z height as you pack bottom-up.
+
+After every placement step, validate bounding boxes against the tray interior.
 
 ### 3. Create Container
 
@@ -109,7 +114,7 @@ See [references/threat-items.md](references/threat-items.md) for the full TSA pr
 
 Threat items use DICOS Threat Categories per NEMA IIC 1 v04-2023: `METAL` (firearms, knives), `EXPLOSIVE` (IEDs, detonators), `CONTRABAND` (tools, weapons, sporting goods), `ANOMALY` (suspicious configurations).
 
-When placing threats, record their world-space bounding boxes for the TDR (step 10).
+Threat items are placed inside bags like any other content during Blender scene creation. No special handling is needed during the Blender sketching phase — threat bounding boxes are computed automatically at DICOS export time (step 11).
 
 ### 9. Voxelize (Optional)
 
@@ -134,11 +139,19 @@ go run ./scripts/voxel2dicos/ tmp/voxels.raw tmp/bag_ct.dcs
 
 The script reads the raw binary header + voxel data, builds a DICOS CTImage with proper modules (Patient, Study, Series, Equipment, ImagePlane, FrameOfReference, CTImage, VOILUT), and writes it as an uncompressed multi-frame `.dcs` file. See the Go source for the full tag mapping.
 
-### 11. Generate TDR with Threat Boxes (Optional)
+### 11. Generate TDR with Threat Boxes
+
+**Always generate a TDR when the scene contains any TSA prohibited items.** This is not optional — if banned items are present, a TDR must be written.
 
 See [references/tdr-workflow.md](references/tdr-workflow.md) for DICOS TDR specifics.
 
-A TDR is a separate DICOS file that references the CT image and marks threat regions with 3D bounding boxes. Each Potential Threat Object (PTO) includes a Threat Category (NEMA IIC 1 v04-2023 Defined Terms), Assessment Flag (`HIGH_THREAT`/`THREAT`), probability, and bounding box coordinates in mm.
+At DICOS export time, scan the Blender scene for any `CT_Knife_*`, `CT_Gun_*`, `CT_Ammo_*`, `CT_BoxCutter*`, `CT_Scissors*`, `CT_MultiTool*`, `CT_Firearm*`, `CT_PipeBomb*`, `CT_Detonator*`, `CT_Dynamite*`, `CT_PlasticExplosive*`, or other threat-prefixed objects. For each threat item:
+
+1. Compute its composite world-space bounding box (union of all parts)
+2. Convert to volume-relative mm coordinates
+3. Add a PTO entry with Threat Category, Assessment Flag (`HIGH_THREAT`), and bounding box
+
+The TDR is a separate `.dcs` file that references the CT image. It contains one PTO per threat item, with Alarm Decision set to `ALARM`.
 
 ## Naming Convention
 
