@@ -35,7 +35,31 @@ INTERIOR_Y = (-0.200, 0.200)   # ±200mm
 FLOOR_Z    = 0.005              # items sit here (floor + 1mm gap)
 ```
 
-Build the tray as a cube with boolean-subtracted interior cavity, then bevel edges (3mm, 2 segments).
+### Construction Steps
+
+1. **Outer shell**: `primitive_cube_add(size=1)` at `(0, 0, TRAY_H/2)`, scale to `(TRAY_L, TRAY_W, TRAY_H)`, apply scale
+2. **Interior cavity**: `primitive_cube_add` at `(0, 0, FLOOR + inner_h/2)`, scale to `(TRAY_L - 2*WALL, TRAY_W - 2*WALL, TRAY_H - FLOOR)`, apply scale. Boolean DIFFERENCE from outer shell, delete cavity.
+3. **Edge bevel**: Bevel modifier, width=0.003, segments=2, apply.
+4. **Handle cutouts**: On both short ends (±TRAY_L/2 in X), add a cylinder `r=0.025, depth=WALL+0.004`, rotated 90° around Y, scaled `(1, 2.5, 1)` to make an oval slot. Located at `z=TRAY_H - 0.015`. Boolean DIFFERENCE from tray, delete cylinder. Repeat for other end.
+5. **Rolled rim lip**: Create a thin cube `(TRAY_L+0.006, TRAY_W+0.006, 0.003)` at `z=TRAY_H`. Boolean subtract a slightly smaller cube to leave only the 3mm edge flange. Join to tray.
+
+```python
+# Handle cutouts (both short ends)
+for x_sign in [-1, 1]:
+    bpy.ops.mesh.primitive_cylinder_add(
+        radius=0.025, depth=WALL + 0.004,
+        location=(x_sign * TRAY_L/2, 0, TRAY_H - 0.015),
+        rotation=(0, math.radians(90), 0))
+    slot = bpy.context.active_object
+    slot.scale = (1, 2.5, 1)  # oval
+    bpy.ops.object.transform_apply(scale=True)
+    # Boolean DIFFERENCE from tray, then delete slot
+
+# Rolled rim lip (3mm outward flange at top edge)
+# Outer rim cube (TRAY_L+6mm, TRAY_W+6mm, 3mm) at z=TRAY_H
+# Subtract inner cube (TRAY_L-2mm, TRAY_W-2mm, 6mm) to leave edge only
+# Join to tray
+```
 
 ## The Tray is Solid — Non-Penetration Rules
 
@@ -85,6 +109,21 @@ for obj in items:
 ## Tray Material
 
 - Injection-molded polypropylene
-- CT density: 4000 (clearly visible outline)
+- CT density: stored 2524 (+1500 HU apparent) for simulation visibility
 - Color in Blender: opaque dark blue-gray
 - Typically gray or dark gray in reality
+
+## Real Scan Reference (from testdata/leidos.dcs)
+
+Analysis of a real ClearScan CT image (312x312x375 voxels):
+
+```
+Air baseline:   ~32751 (stored uint16)
+Tray floor:     z=0-10, density +500 to +900 above air
+Tray walls:     z=6-20, thin (12-15 voxels), density +800 to +900
+Bag contents:   z=20+ onward, density up to +14000 for metal
+Tray position:  not centered — sits near one edge of the FOV
+Tray X extent:  ~180 voxels at floor level
+```
+
+The real tray is FAINT in CT (~900 HU above air = polypropylene at ~1.1 g/cm³). Our simulation uses +1500 HU for the tray to ensure visibility — this simulates the partial-volume and beam-hardening effects that make thin plastic more visible at the shell boundary in real scans.

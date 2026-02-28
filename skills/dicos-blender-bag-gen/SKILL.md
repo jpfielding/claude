@@ -16,6 +16,57 @@ description: >
 
 Generate realistic CT scan visualizations of bags and personal items in TSA screening trays via Blender MCP.
 
+## Defaults
+
+Use these unless the user requests otherwise. Confirm before changing.
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Tray type | Standard flat | 660 x 420 x 75mm |
+| Voxel grid | **256 x 256 x 128** | Medium quality (default) |
+| Blender units | Meters | 1 unit = 1 meter |
+| Output format | DICOS CT + TDR | In a named directory under `tmp/` |
+| Bag shell density | 2024 stored (+1000 HU) | Apparent density for visibility |
+| Tray density | 2524 stored (+1500 HU) | Apparent density for visibility |
+| Rescale Intercept | -1024 | stored 0 = -1024 HU (air) |
+
+### Voxel Grid Sizes
+
+The grid determines slice dimensions (Width x Height) and slice count (Depth). Larger grids produce finer detail but take longer to voxelize and create bigger files.
+
+| Preset | Width x Height x Depth | Slice Size | Spacing (mm) | File Size | Voxelize Time | Use |
+|--------|----------------------|------------|--------------|-----------|---------------|-----|
+| **Draft** | 128 x 128 x 64 | 128x128 | ~5.2 x 3.4 x 3.1 | ~2 MB | ~3s | Quick preview |
+| **Medium** (default) | 256 x 256 x 128 | 256x256 | ~2.6 x 1.7 x 1.6 | ~16 MB | ~15s | Standard quality |
+| **High** | 512 x 512 x 256 | 512x512 | ~1.3 x 0.8 x 0.8 | ~128 MB | ~2min | Detailed analysis |
+| **Scanner-match** | 512 x 512 x 375 | 512x512 | ~1.3 x 0.8 x 0.5 | ~192 MB | ~3min | Matches HI-SCAN 6040 CTiX |
+| **Reference** | 312 x 312 x 315 | 312x312 | ~2.1 x 1.3 x 0.6 | ~61 MB | ~1min | Matches testdata leidos-sim.dcs |
+
+Spacing is calculated from: `spacing = scene_extent / grid_dimension`. The scene extent is determined by the tray size plus a small padding margin.
+
+### TSA-Approved Checkpoint CT Scanner Reference
+
+These are real scanners deployed at TSA checkpoints. Image parameters are approximate (vendors don't publish exact specs publicly).
+
+| Scanner | Manufacturer | Tunnel (W x H) | Recon Matrix | Slices | Voxel (mm) | Belt Speed |
+|---------|-------------|-----------------|-------------|--------|------------|------------|
+| HI-SCAN 6040 CTiX | Smiths Detection | 620 x 420mm | 512 x 512 | 300-500 | ~1.2 x 1.2 x 0.5 | 0.2 m/s |
+| ConneCT | Analogic | 620 x 420mm | 512 x 512 | 300-400 | ~1.0 x 1.0 x 0.5 | 0.2 m/s |
+| RTT 110 | Rapiscan Systems | 620 x 420mm | 512 x 512 | 350-500 | ~1.2 x 1.2 x 0.6 | 0.2 m/s |
+| ClearScan | Leidos | 620 x 420mm | 312 x 312 | 315 | ~2.0 x 2.0 x 0.6 | 0.2 m/s |
+| ICTS CT | IDSS (Integrated Defense) | 620 x 420mm | 512 x 512 | 300-400 | ~1.0 x 1.0 x 0.5 | 0.15 m/s |
+
+**Common characteristics across all TSA checkpoint CT scanners:**
+- Tunnel opening: ~620mm W x 420mm H (standardized for tray compatibility)
+- Dual-energy capable: 80kV / 140kV (for material discrimination)
+- Spiral/helical acquisition
+- 16-bit pixel data (uint16), MONOCHROME2
+- DICOS CT Image output (SOP Class 1.2.840.10008.5.1.4.1.1.2)
+- DICOS TDR output for automated threat detection
+- Belt speed: ~0.2 m/s (tray passes through in ~3 seconds)
+
+When the user asks for a specific scanner model, use its parameters. When they ask for "realistic" or "production quality", use Scanner-match (512x512x375).
+
 ## Prerequisites
 
 Requires [Blender MCP](https://github.com/ahujasid/blender-mcp) - a Model Context Protocol server that connects Claude to Blender. See [references/blender-mcp-setup.md](references/blender-mcp-setup.md) for full install instructions (download addon.py, install uv, configure `~/.claude.json`, activate in Blender).
