@@ -132,17 +132,32 @@ func main() {
 	ct.CTImageMod.WindowCenter = 1500
 	ct.CTImageMod.WindowWidth = 4000
 
-	ct.ImagePlane.PixelSpacing = [2]float64{hdr.SpacingY, hdr.SpacingX}
-	ct.ImagePlane.SliceThickness = hdr.SpacingZ
-	ct.ImagePlane.SpacingBetweenSlices = hdr.SpacingZ
-	ct.ImagePlane.ImageOrientationPatient = [6]float64{1, 0, 0, 0, 1, 0}
+	// Security CT orientation: belt runs along X (tray long axis).
+	// Native CT slices are axial = YZ plane, perpendicular to belt.
+	// Frames: one per X position (along belt). Rows=Z (height), Columns=Y (tray width).
+	// Slice direction: along X (SpacingX between slices).
+	//
+	// ImageOrientationPatient: row direction=Z(up), col direction=Y(across belt)
+	// For axial slices with Z flipped (tray at bottom = last row):
+	//   Row direction = [0, 0, -1] (Z decreasing = tray at bottom of image)
+	//   Col direction = [0, 1,  0] (Y across belt)
+	ct.ImagePlane.PixelSpacing = [2]float64{hdr.SpacingZ, hdr.SpacingY} // row=Z, col=Y
+	ct.ImagePlane.SliceThickness = hdr.SpacingX                          // slices along X (belt)
+	ct.ImagePlane.SpacingBetweenSlices = hdr.SpacingX
+	ct.ImagePlane.ImageOrientationPatient = [6]float64{0, 0, -1, 0, 1, 0}
 	ct.ImagePlane.ImagePositionPatient = [3]float64{hdr.OriginX, hdr.OriginY, hdr.OriginZ}
 
 	ct.FrameOfReference.FrameOfReferenceUID = dicos.GenerateUID("1.2.826.0.1.3680043.8.498.")
 	ct.FrameOfReference.PositionReferenceIndicator = "BB"
 
-	ct.Rows = height
-	ct.Columns = width
+	// Frame dimensions: Rows=Z (depth), Columns=Y (height)
+	// Number of frames = X (width) — one axial slice per belt position
+	frameRows := depth    // Z dimension
+	frameCols := height   // Y dimension
+	numFrames := width    // X dimension (along belt)
+
+	ct.Rows = frameRows
+	ct.Columns = frameCols
 	ct.BitsAllocated = 16
 	ct.BitsStored = 16
 	ct.HighBit = 15
@@ -150,7 +165,20 @@ func main() {
 	ct.SamplesPerPixel = 1
 	ct.PhotometricInterp = "MONOCHROME2"
 
-	ct.SetPixelData(height, width, voxels)
+	// Reorganize voxels: from [z][y][x] storage to axial frames [x][z_flipped][y]
+	axialVoxels := make([]uint16, len(voxels))
+	for x := 0; x < width; x++ {
+		for row := 0; row < depth; row++ {
+			z := depth - 1 - row // flip Z so tray (z=0) is at bottom of image
+			for y := 0; y < height; y++ {
+				srcIdx := z*width*height + y*width + x
+				dstIdx := x*depth*height + row*height + y
+				axialVoxels[dstIdx] = voxels[srcIdx]
+			}
+		}
+	}
+
+	ct.SetPixelData(frameRows, frameCols, axialVoxels)
 
 	ctPath := filepath.Join(outDir, "ct.dcs")
 	n, err := ct.Write(ctPath)
@@ -159,7 +187,9 @@ func main() {
 	}
 
 	fmt.Printf("\n%s (%d bytes, %.1f MB)\n", ctPath, n, float64(n)/1024/1024)
-	fmt.Printf("  %d frames, %dx%d, spacing %.2fx%.2fx%.2f mm\n", depth, width, height, hdr.SpacingX, hdr.SpacingY, hdr.SpacingZ)
+	fmt.Printf("  %d axial frames (along belt), %dx%d per frame (Z x Y)\n", numFrames, frameRows, frameCols)
+	fmt.Printf("  Pixel spacing: %.2f x %.2f mm, slice spacing: %.2f mm\n", hdr.SpacingZ, hdr.SpacingY, hdr.SpacingX)
+	fmt.Printf("  Axial=native(YZ), Sagittal=reconstructed(XZ), Coronal=reconstructed(XY)\n")
 
 	// --- Read threats and build TDR ---
 	threatData, err := os.ReadFile(threatsPath)

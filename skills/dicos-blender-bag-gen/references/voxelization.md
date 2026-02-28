@@ -65,36 +65,41 @@ Write shell voxels to volume at the object's density value.
 
 Sort by density descending. For each object, sample its bounding box and fill voxels where `volume[idx] < density` and point is inside mesh.
 
-## Axis Convention (Tray-Relative)
+## Axis Convention (Security CT / Tray-on-Belt)
 
-The voxel grid axes are locked to the screening tray orientation:
+The voxel grid axes are locked to the screening tray on a conveyor belt:
 
 ```
-X = tray long side (660mm)  → Width  (256 voxels)
-Y = tray short side (420mm) → Height (256 voxels)
-Z = up/down                 → Depth  (128 slices, Z=0 at tray floor)
+X = belt direction / tray long side (660mm) → Width  (256 voxels) → SLICE AXIS
+Y = across belt / tray short side (420mm)   → Height (256 voxels)
+Z = up/down (gravity)                       → Depth  (128 voxels, Z=0 at tray floor)
 ```
 
-This produces the three standard CT views:
+The CT gantry rotates around the belt axis (X). Native CT slices are perpendicular to belt motion.
 
-| View | Plane | Horizontal | Vertical | Slice Through |
-|------|-------|-----------|----------|---------------|
-| **Axial** | XY at Z | Tray long side (X) | Tray short side (Y) | Top-down through height |
-| **Coronal** | XZ at Y | Tray long side (X) | Height (Z), tray at bottom | Front-to-back |
-| **Sagittal** | YZ at X | Tray short side (Y) | Height (Z), tray at bottom | Left-to-right |
+### Three Standard Views (Security CT Convention)
 
-**Coronal is the primary operator view**: tray long-ways horizontal, tray on the bottom, items above.
+| View | Plane | Slice Through | Horizontal | Vertical | Notes |
+|------|-------|--------------|-----------|----------|-------|
+| **Axial** (native) | YZ at X | Along belt (X) | Tray short side (Y) | Height (Z), tray at bottom | Native CT slice, perpendicular to belt |
+| **Sagittal** | XZ at Y | Across belt (Y) | Tray long side (X) | Height (Z), tray at bottom | Side view along belt |
+| **Coronal** | XY at Z | Top-down (Z) | Tray long side (X) | Tray short side (Y) | Bird's eye view of tray |
 
-For coronal and sagittal, Z is flipped so row 0 = top of scene (highest Z) and the last row = tray floor (Z=0). This puts the tray at the bottom of the displayed image.
+**Axial is the native frame format.** Each DICOS frame is one YZ slice at a belt position X. Sagittal and coronal are reconstructed from the volume.
+
+For axial and sagittal views, Z is flipped so row 0 = top of scene and the last row = tray floor. This puts the tray at the bottom of the displayed image.
 
 ### DICOM Orientation Tags
 
 ```
-ImageOrientationPatient = [1,0,0, 0,1,0]  — rows along X, columns along Y (standard axial)
-ImagePositionPatient    = [originX, originY, originZ]  — top-left of first frame (mm)
-PixelSpacing            = [spacingY, spacingX]  — [row_spacing, col_spacing] per DICOM convention
-SliceThickness          = spacingZ
-SpacingBetweenSlices    = spacingZ
+ImageOrientationPatient = [0,0,-1, 0,1,0]  — rows along -Z (tray at bottom), columns along Y
+ImagePositionPatient    = [originX, originY, originZ]
+PixelSpacing            = [spacingZ, spacingY]  — [row_spacing=Z, col_spacing=Y]
+SliceThickness          = spacingX              — slices along belt (X)
+SpacingBetweenSlices    = spacingX
+NumberOfFrames          = Width (X dimension)
+Rows                    = Depth (Z dimension)
+Columns                 = Height (Y dimension)
 ```
 
 ## Output Format
