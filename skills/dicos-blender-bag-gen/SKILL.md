@@ -40,7 +40,6 @@ The grid determines slice dimensions (Width x Height) and slice count (Depth). L
 | **Medium** (default) | 256 x 256 x 128 | 256x256 | ~2.6 x 1.7 x 1.6 | ~16 MB | ~15s | Standard quality |
 | **High** | 512 x 512 x 256 | 512x512 | ~1.3 x 0.8 x 0.8 | ~128 MB | ~2min | Detailed analysis |
 | **Scanner-match** | 512 x 512 x 375 | 512x512 | ~1.3 x 0.8 x 0.5 | ~192 MB | ~3min | Matches HI-SCAN 6040 CTiX |
-| **Reference** | 312 x 312 x 315 | 312x312 | ~2.1 x 1.3 x 0.6 | ~61 MB | ~1min | Matches testdata leidos-sim.dcs |
 
 Spacing is calculated from: `spacing = scene_extent / grid_dimension`. The scene extent is determined by the tray size plus a small padding margin.
 
@@ -53,7 +52,7 @@ These are real scanners deployed at TSA checkpoints. Image parameters are approx
 | HI-SCAN 6040 CTiX | Smiths Detection | 620 x 420mm | 512 x 512 | 300-500 | ~1.2 x 1.2 x 0.5 | 0.2 m/s |
 | ConneCT | Analogic | 620 x 420mm | 512 x 512 | 300-400 | ~1.0 x 1.0 x 0.5 | 0.2 m/s |
 | RTT 110 | Rapiscan Systems | 620 x 420mm | 512 x 512 | 350-500 | ~1.2 x 1.2 x 0.6 | 0.2 m/s |
-| ClearScan | Leidos | 620 x 420mm | 312 x 312 | 315 | ~2.0 x 2.0 x 0.6 | 0.2 m/s |
+| ClearScan | ACME | 620 x 420mm | 312 x 312 | 315 | ~2.0 x 2.0 x 0.6 | 0.2 m/s |
 | ICTS CT | IDSS (Integrated Defense) | 620 x 420mm | 512 x 512 | 300-400 | ~1.0 x 1.0 x 0.5 | 0.15 m/s |
 
 **Common characteristics across all TSA checkpoint CT scanners:**

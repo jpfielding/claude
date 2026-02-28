@@ -18,7 +18,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.ses.psdo.leidos.com/enterprise-security-platform/prosight-devices/dicos.go/pkg/dicos"
+	"github.com/jpfielding/dicos.go/pkg/dicos"
 )
 
 type rawHeader struct {

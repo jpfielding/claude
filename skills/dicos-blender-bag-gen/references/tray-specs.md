@@ -113,7 +113,7 @@ for obj in items:
 - Color in Blender: opaque dark blue-gray
 - Typically gray or dark gray in reality
 
-## Real Scan Reference (from testdata/leidos.dcs)
+## Real Scan Reference (from testdata/clearscan.dcs)
 
 Analysis of a real ClearScan CT image (312x312x375 voxels):
 

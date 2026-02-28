@@ -1,7 +1,7 @@
 module voxel2dicos
 
-go 1.25
+go 1.25.5
 
-require gitlab.ses.psdo.leidos.com/enterprise-security-platform/prosight-devices/dicos.go v0.0.0
+require github.com/jpfielding/dicos.go v0.1.0
 
-replace gitlab.ses.psdo.leidos.com/enterprise-security-platform/prosight-devices/dicos.go => /Users/fieldingj/projects/misc/dicos.go
+require github.com/jpfielding/jpegs v0.1.1 // indirect
