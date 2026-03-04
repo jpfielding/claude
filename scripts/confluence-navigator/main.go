@@ -1106,6 +1106,79 @@ func cmdUpdatePage(c *apiClient, args []string) {
 	printJSON(out)
 }
 
+func cmdRenamePage(c *apiClient, args []string) {
+	if len(args) < 2 {
+		die("Usage: rename-page <page-id> <new-title>")
+	}
+	pageID := args[0]
+	newTitle := args[1]
+
+	params := url.Values{
+		"expand": {"title,type,space,version,body.storage"},
+	}
+	data, err := c.get("/content/"+pageID, params)
+	if err != nil {
+		die("%s", err)
+	}
+	var page map[string]any
+	json.Unmarshal(data, &page)
+
+	currentVersion, err := strconv.Atoi(jsonStr(jsonMap(page, "version"), "number"))
+	if err != nil {
+		die("failed to parse current page version: %v", err)
+	}
+
+	// Preserve existing body content
+	existingContent := ""
+	if body := jsonMap(page, "body"); body != nil {
+		if storage := jsonMap(body, "storage"); storage != nil {
+			existingContent = jsonStr(storage, "value")
+		}
+	}
+
+	payload := map[string]any{
+		"id":    pageID,
+		"type":  strOr(jsonStr(page, "type"), "page"),
+		"title": newTitle,
+		"space": map[string]any{
+			"key": jsonStr(jsonMap(page, "space"), "key"),
+		},
+		"body": map[string]any{
+			"storage": map[string]any{
+				"value":          existingContent,
+				"representation": "storage",
+			},
+		},
+		"version": map[string]any{
+			"number": currentVersion + 1,
+		},
+	}
+
+	updatedData, err := c.put("/content/"+pageID, payload)
+	if err != nil {
+		die("%s", err)
+	}
+	var updated map[string]any
+	json.Unmarshal(updatedData, &updated)
+
+	links := jsonMap(updated, "_links")
+	webUI := ""
+	if links != nil {
+		webUI = jsonStr(links, "webui")
+		if webUI != "" && !strings.HasPrefix(webUI, "http") {
+			webUI = c.baseURL + webUI
+		}
+	}
+
+	out := map[string]any{
+		"id":      jsonStr(updated, "id"),
+		"title":   jsonStr(updated, "title"),
+		"version": jsonStr(jsonMap(updated, "version"), "number"),
+		"url":     webUI,
+	}
+	printJSON(out)
+}
+
 func cmdCreateSpace(c *apiClient, args []string) {
 	if len(args) < 2 {
 		die("Usage: create-space <space-key> <space-name> [description]")
@@ -2172,6 +2245,7 @@ Commands (first arg is hostname or unique substring from ~/.netrc):
     <host> history <id> [limit]     Page version history
     <host> create-page <space-key> <title> [parent-id] [content]  Create a page
     <host> update-page <id> <content> [replace|append]  Update page content
+    <host> rename-page <id> <new-title>  Rename a page (change title)
     <host> tree <space-key> [root-page-id]  Show page hierarchy tree
 
   Comments:
@@ -2254,6 +2328,8 @@ func main() {
 		cmdCreatePage(client, cmdArgs)
 	case "update-page":
 		cmdUpdatePage(client, cmdArgs)
+	case "rename-page":
+		cmdRenamePage(client, cmdArgs)
 	case "space-pages":
 		cmdSpacePages(client, cmdArgs)
 	case "page":
