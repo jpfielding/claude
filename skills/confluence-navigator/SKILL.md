@@ -148,3 +148,68 @@ Some features require specific Confluence plugins:
 - **Reading list** may not be available in all Confluence versions
 
 If a feature is unavailable, the script will provide a helpful error message.
+
+## Bash Fallback (When Go is Unavailable)
+
+If Go is not installed in the current environment, use curl directly with the Confluence REST API.
+
+### Setup
+```bash
+# Extract host and token from ~/.netrc
+CONF_HOST="confluence.example.com"
+TOKEN=$(grep "$CONF_HOST" ~/.netrc | awk '{print $6}')
+```
+
+### Common Operations
+
+**Search for pages:**
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://$CONF_HOST/rest/api/content/search?cql=title~%22search%20term%22&limit=10" | \
+  jq -r '.results[] | "\(.id) - \(.title)"'
+```
+
+**Get page content:**
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://$CONF_HOST/rest/api/content/PAGE_ID?expand=body.storage,version" | \
+  jq -r '.body.storage.value'
+```
+
+**Get page version:**
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://$CONF_HOST/rest/api/content/PAGE_ID?expand=version" | jq '.version.number'
+```
+
+**Update page (title and/or content):**
+```bash
+# Escape content for JSON
+ESCAPED_CONTENT=$(echo "$NEW_CONTENT" | jq -Rs .)
+
+curl -s -X PUT \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "https://$CONF_HOST/rest/api/content/PAGE_ID" \
+  -d "{
+    \"id\": \"PAGE_ID\",
+    \"type\": \"page\",
+    \"title\": \"New Title\",
+    \"version\": {\"number\": NEXT_VERSION},
+    \"body\": {
+      \"storage\": {
+        \"value\": $ESCAPED_CONTENT,
+        \"representation\": \"storage\"
+      }
+    }
+  }"
+```
+
+**List spaces:**
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://$CONF_HOST/rest/api/space?limit=50" | \
+  jq -r '.results[] | "\(.key) - \(.name)"'
+```
+
+See [references/api_endpoints.md](references/api_endpoints.md) for full API documentation.
