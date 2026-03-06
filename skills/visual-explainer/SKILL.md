@@ -1,6 +1,6 @@
 ---
 name: visual-explainer
-description: Generate beautiful, self-contained HTML pages that visually explain systems, code changes, plans, and data. Use when the user asks for a diagram, architecture overview, diff review, plan review, project recap, comparison table, or any visual explanation of technical concepts. Also use proactively when you are about to render a complex ASCII table (4+ rows or 3+ columns) — present it as a styled HTML page instead.
+description: Generate beautiful, self-contained HTML pages that visually explain systems, code changes, plans, and data. Use ONLY when the user explicitly requests a visualization, diagram, HTML page, or invokes a visual-explainer sub-command (e.g., /diff-review, /plan-review, /project-recap, /generate-slides, /generate-web-diagram). Do NOT use proactively or for general explanations — wait for an explicit request.
 license: MIT
 compatibility: Requires a browser to view generated HTML files. Optional surf-cli for AI image generation.
 metadata:
@@ -12,7 +12,7 @@ metadata:
 
 Generate self-contained HTML files for technical diagrams, visualizations, and data tables. Always open the result in the browser. Never fall back to ASCII art when this skill is loaded.
 
-**Proactive table rendering.** When you're about to present tabular data as an ASCII box-drawing table in the terminal (comparisons, audits, feature matrices, status reports, any structured rows/columns), generate an HTML page instead. The threshold: if the table has 4+ rows or 3+ columns, it belongs in the browser. Don't wait for the user to ask — render it as HTML automatically and tell them the file path. You can still include a brief text summary in the chat, but the table itself should be the HTML page.
+**This skill is opt-in only.** Only activate when the user explicitly asks for a visualization, diagram, HTML output, or invokes a visual-explainer sub-command. Do not proactively convert terminal output (tables, lists, summaries) into HTML pages. If the user wants a visual, they will ask for one.
 
 ## Workflow
 
