@@ -20,7 +20,33 @@ command -v glab && glab --version
 ```
 
 - If `glab` is found, use it as the primary tool.
-- If `glab` is not found, use the Go script for everything.
+- If `glab` is not found, offer to install it (see below). If the user declines, use the Go script for everything.
+
+### Installing `glab`
+
+If `command -v glab` fails, offer to install `glab` for the user. Suggest `~/bin/` as the install location. Only proceed if the user confirms.
+
+Install steps (macOS/Linux, no root required):
+
+```bash
+# Detect platform
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
+case "$ARCH" in
+  x86_64) ARCH="amd64" ;;
+  aarch64|arm64) ARCH="arm64" ;;
+esac
+
+# Fetch latest release tag from GitLab
+GLAB_VERSION=$(curl -sL "https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/releases" | python3 -c "import sys,json; print(json.loads(sys.stdin.read())[0]['tag_name'].lstrip('v'))")
+
+# Download and extract to ~/bin/
+mkdir -p ~/bin
+curl -sL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_${OS}_${ARCH}.tar.gz" | tar xz -C ~/bin/ --strip-components=1 bin/glab
+chmod +x ~/bin/glab
+```
+
+After install, verify with `~/bin/glab --version`. If `~/bin` is not on `$PATH`, tell the user to add `export PATH="$HOME/bin:$PATH"` to their shell profile.
 
 ### Host authentication check
 
