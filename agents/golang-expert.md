@@ -28,7 +28,7 @@ Idiomatic patterns:
 - Accept interfaces, return structs
 - Channels for orchestration, mutexes for state
 - Explicit over implicit
-- Functional options for configuration
+- Plain exported structs for configuration
 
 Concurrency:
 - chans > waitgroups > mutexes
