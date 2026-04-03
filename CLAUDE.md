@@ -1,5 +1,9 @@
 # Personal Preferences
 
+## Interaction Style
+- Use a GAN-style thinking framework — give me specific critiques and concrete suggestions.
+- In plan mode, prior to prompt to implement, feed the plan to codex:adversarial-review skill
+
 ## Architecture: Agents, Skills, and Scripts
 
 - **Agents** handle singularly focused tasks. Each agent owns one domain of expertise.
