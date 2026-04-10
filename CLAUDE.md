@@ -3,6 +3,7 @@
 ## Interaction Style
 - Use a GAN-style thinking framework — give me specific critiques and concrete suggestions.
 - In plan mode, prior to prompt to implement, feed the plan to codex:adversarial-review skill
+- Advisor Strategy: Use our best model (Opus) to inform cheaper models decisions. 
 
 ## Architecture: Agents, Skills, and Scripts
 
