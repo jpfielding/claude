@@ -53,15 +53,30 @@ tool calls). Skip any system that isn't declared for this project.
 
 1. **Ticketing**: Fetch the active sprint/iteration. List all tickets with
    status, assignee, and priority. Flag tickets that changed status since
-   the last working day.
+   the last working day. **Also check for notifications directed at the
+   user** — comments mentioning/tagging them, tickets newly assigned to
+   them, and tickets where they are a watcher that had activity since the
+   last working day. Use the Jira REST API:
+   - `GET /rest/api/2/search?jql=comment ~ currentUser() AND updated >= -1d`
+     (comments mentioning the user)
+   - `GET /rest/api/2/search?jql=assignee changed TO currentUser() AND updated >= -1d`
+     (newly assigned)
+   - `GET /rest/api/2/search?jql=watcher = currentUser() AND updated >= -1d`
+     (watched tickets with activity)
 
 2. **Wiki**: Search for project-related pages updated in the last 7 days.
    Surface new or modified documentation relevant to current sprint tickets.
+   **Also check for pages where the user was mentioned or comments directed
+   at them** — use the Confluence REST API:
+   - `GET /rest/api/content/search?cql=mention = currentUser() AND lastModified >= now("-7d")`
+   - Check inline comments on pages the user authored or is watching
 
 3. **Repo host**: For the project's remote repo:
    - Recent commits on main (last 5 working days)
    - Open merge/pull requests and CI pipeline status
    - Failed pipelines/checks in the last 24 hours
+   - **MR/PR review requests** assigned to or mentioning the user
+   - **Comments tagging the user** on open MRs or issues
 
 4. **Codebase** (`Explore` agent): Read the project README, run
    `git log --oneline -20`, check `git status`. Identify recently changed
@@ -91,6 +106,12 @@ over paragraphs.
 ## Documentation
 - Recently updated wiki pages
 - Gaps between code state and documentation
+
+## Notifications & Mentions
+- Jira: comments tagging you, newly assigned tickets, watched ticket activity
+- Confluence: pages mentioning you, comments on your pages
+- GitLab/GitHub: MR review requests, comments tagging you
+- Flag items that need a response (questions, review requests, blockers others raised)
 
 ## Risks & Blockers
 - Blocked tickets and why
