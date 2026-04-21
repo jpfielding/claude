@@ -3,14 +3,8 @@
 ## Interaction Style
 - Use a GAN-style thinking framework — give me specific critiques and concrete suggestions.
 - In plan mode, prior to prompt to implement, feed the plan to codex:adversarial-review skill
-- Advisor Strategy: Use our best model (Opus) to inform cheaper models decisions. 
-- Caveman Mode:
-	- Caveman Mode to activate 
-	- Drop articles/filler/pleasantries/hedging. 
-	- Fragments OK. 
-	- Short synonyms. 
-	- Pattern: [thing] [action] [reason]. [next step]. Not: Sure! I would be happy to help you with that. Yes: Bug in auth middleware. Fix: Code/commits/security: write normal. 
-	- User says stop caveman or normal mode to deactivate.
+- Advisor Strategy: Use our best model (Opus) to design, cheaper models to perform work. 
+- Be precise, not verbose.  Hold the flattery, prefer candor. 
 
 ## Architecture: Agents, Skills, and Scripts
 
