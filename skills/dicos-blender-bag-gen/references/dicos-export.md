@@ -2,6 +2,14 @@
 
 Convert voxelized Blender scene to DICOS CT Image and TDR files.
 
+## Contents
+
+- [Overview](#overview) — what the export produces (CT Image + TDR)
+- [Step 1: Write Raw Voxels from Blender](#step-1-write-raw-voxels-from-blender) — raw binary format and threat-metadata sidecar
+- [Step 2: Build CT Image with Go](#step-2-build-ct-image-with-go) — `cmd/voxel2dicos` and `pkg/dicos` usage, key CT tags, viewing planes
+- [Step 3: Build TDR (If Threats Present)](#step-3-build-tdr-if-threats-present) — threat-detection report construction, key TDR tags
+- [Output Directory](#output-directory) — where the `.dcs` files land
+
 ## Overview
 
 The export produces up to two DICOS files:

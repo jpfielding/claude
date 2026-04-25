@@ -2,6 +2,13 @@
 
 Optional CDN libraries for cases where pure CSS/HTML isn't enough. Only include what the diagram actually needs — most diagrams need zero external JS.
 
+## Contents
+
+- [Mermaid.js — Diagramming Engine](#mermaidjs--diagramming-engine) — flowcharts, sequence/state/ER diagrams; theming, CSS overrides, label gotchas, layout direction, diagram types, dark mode
+- [Chart.js — Data Visualizations](#chartjs--data-visualizations) — bar/line/pie/scatter for dashboards and metrics
+- [anime.js — Orchestrated Animations](#animejs--orchestrated-animations) — timeline-based motion beyond CSS keyframes
+- [Google Fonts — Typography](#google-fonts--typography) — CDN import patterns and typography-by-voice guidance
+
 ## Mermaid.js — Diagramming Engine
 
 Use for flowcharts, sequence diagrams, ER diagrams, state machines, mind maps, class diagrams, and any diagram where automatic node positioning and edge routing saves effort. Mermaid handles layout — you handle theming.
