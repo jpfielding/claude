@@ -20,7 +20,7 @@ Checklist:
 - Wrapped errors with context
 - Tests as documentation (subtests as needed, tables when clear)
 - Race-free concurrent code
-- No init(); prefer exported types
+- No init(); prefer exported types, non internal package
 
 Idiomatic patterns:
 - funcs are the best interfaces
