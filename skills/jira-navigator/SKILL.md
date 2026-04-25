@@ -68,10 +68,49 @@ All commands: `go run ~/.claude/scripts/jira-navigator/main.go <host> <command> 
     State: `active`, `closed`, or `future`.
 17. **Issues in a sprint:** `go run ~/.claude/scripts/jira-navigator/main.go acme sprint-issues 100`
 
+### Write Commands (shared-state — confirm with the user before running)
+
+These mutate Jira. Always confirm intent before calling them, and prefer a
+dry-run preview (e.g., print the payload) for batch operations.
+
+18. **Create an issue** (prints the new key on stdout):
+    ```bash
+    go run ~/.claude/scripts/jira-navigator/main.go acme create-issue \
+      --project PROJ --type Story \
+      --summary "Short summary" \
+      --epic PROJ-100 --assignee alice \
+      --priority Medium --labels a,b \
+      --desc-stdin <<'EOF'
+    Long description, supports wiki markup.
+    EOF
+    ```
+    - `--epic-field` defaults to `customfield_10101`; override per instance if the Epic Link lives elsewhere. Find it with `curl` against `/rest/api/2/issue/<key>?fields=*all` on a known epic-linked issue.
+    - Description sources are mutually exclusive: `--desc`, `--desc-file <path>`, or `--desc-stdin`.
+
+19. **Add a comment:**
+    ```bash
+    go run ~/.claude/scripts/jira-navigator/main.go acme comment PROJ-123 --body "..."
+    go run ~/.claude/scripts/jira-navigator/main.go acme comment PROJ-123 --body-file note.md
+    go run ~/.claude/scripts/jira-navigator/main.go acme comment PROJ-123 --body-stdin < note.md
+    ```
+    **Formatting caveat:** many Jira Server/DC instances (including some with auto-linking configured) treat comment bodies as **plain text with line breaks + issue-key/URL auto-linking only**. Wiki markup (`h3.`, `{{code}}`, `|| table ||`, `*bold*`) and Markdown render literally, not as structure. Verify on the target instance with `curl -H "Authorization: Bearer $TOKEN" "https://HOST/rest/api/2/issue/KEY/comment/ID?expand=renderedBody"` before relying on formatting. Default to plain text with ALL-CAPS section headers and `-` bullets.
+
+20. **Edit an existing comment:**
+    ```bash
+    go run ~/.claude/scripts/jira-navigator/main.go acme edit-comment PROJ-123 13004 --body-file note.md
+    ```
+    Useful for fixing an accidentally-wiki-formatted comment without losing the comment id / timeline position.
+
+21. **Transition an issue** (use `transitions <key>` first to list IDs):
+    ```bash
+    go run ~/.claude/scripts/jira-navigator/main.go acme transition PROJ-123 21
+    go run ~/.claude/scripts/jira-navigator/main.go acme transition PROJ-123 21 --comment "moving to in progress"
+    ```
+
 ### Utility
 
-18. **Current user:** `go run ~/.claude/scripts/jira-navigator/main.go acme whoami`
-19. **Test connection:** `go run ~/.claude/scripts/jira-navigator/main.go acme test`
+22. **Current user:** `go run ~/.claude/scripts/jira-navigator/main.go acme whoami`
+23. **Test connection:** `go run ~/.claude/scripts/jira-navigator/main.go acme test`
 
 ## JQL Reference
 

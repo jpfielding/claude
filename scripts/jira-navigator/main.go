@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -182,6 +184,56 @@ func (c *apiClient) get(endpoint string, params url.Values) (json.RawMessage, er
 		u += "?" + params.Encode()
 	}
 	return c.doGet(u)
+}
+
+func (c *apiClient) doPost(fullURL string, body []byte) (json.RawMessage, error) {
+	req, err := http.NewRequest("POST", fullURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.password)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("API returned HTTP %d: %s", resp.StatusCode, string(respBody))
+	}
+	return json.RawMessage(respBody), nil
+}
+
+func (c *apiClient) post(endpoint string, body []byte) (json.RawMessage, error) {
+	return c.doPost(c.baseURL+"/rest/api/2"+endpoint, body)
+}
+
+func (c *apiClient) doPut(fullURL string, body []byte) (json.RawMessage, error) {
+	req, err := http.NewRequest("PUT", fullURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.password)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("API returned HTTP %d: %s", resp.StatusCode, string(respBody))
+	}
+	return json.RawMessage(respBody), nil
+}
+
+func (c *apiClient) put(endpoint string, body []byte) (json.RawMessage, error) {
+	return c.doPut(c.baseURL+"/rest/api/2"+endpoint, body)
 }
 
 func (c *apiClient) getAgile(endpoint string, params url.Values) (json.RawMessage, error) {
@@ -981,6 +1033,229 @@ func cmdSprintIssues(c *apiClient, args []string) {
 
 // ── Help ────────────────────────────────────────────────────
 
+// ── Write commands ──────────────────────────────────────────
+
+// readBody returns the body text: --body wins, then --body-file, then stdin
+// when --body-stdin is set. Exits with a clear error if more than one is set
+// or none is set (callers that accept "no body" should validate before calling).
+func readBody(flagVal, fileVal string, stdinFlag bool) string {
+	set := 0
+	if flagVal != "" {
+		set++
+	}
+	if fileVal != "" {
+		set++
+	}
+	if stdinFlag {
+		set++
+	}
+	if set > 1 {
+		die("pass at most one of --body, --body-file, --body-stdin")
+	}
+	switch {
+	case flagVal != "":
+		return flagVal
+	case fileVal != "":
+		data, err := os.ReadFile(fileVal)
+		if err != nil {
+			die("read %s: %v", fileVal, err)
+		}
+		return string(data)
+	case stdinFlag:
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			die("read stdin: %v", err)
+		}
+		return string(data)
+	default:
+		return ""
+	}
+}
+
+// cmdCreateIssue creates a new Jira issue and prints the new key.
+//
+//	<host> create-issue --project SR --type Story --summary "..."
+//	                    [--epic SR-1416] [--assignee user]
+//	                    [--priority Medium] [--labels a,b,c]
+//	                    [--desc "..."] [--desc-file path] [--desc-stdin]
+//	                    [--epic-field customfield_10101]
+func cmdCreateIssue(c *apiClient, args []string) {
+	fs := flag.NewFlagSet("create-issue", flag.ExitOnError)
+	project := fs.String("project", "", "project key (required)")
+	issueType := fs.String("type", "Story", "issue type name (Story, Task, Bug, ...)")
+	summary := fs.String("summary", "", "issue summary (required)")
+	epic := fs.String("epic", "", "epic link key (e.g. SR-1416) — uses --epic-field")
+	epicField := fs.String("epic-field", "customfield_10101", "custom field ID used for epic link on this instance")
+	assignee := fs.String("assignee", "", "assignee username (default: current user)")
+	priority := fs.String("priority", "", "priority name (optional)")
+	labels := fs.String("labels", "", "comma-separated labels (optional)")
+	desc := fs.String("desc", "", "description text")
+	descFile := fs.String("desc-file", "", "read description from file")
+	descStdin := fs.Bool("desc-stdin", false, "read description from stdin")
+	_ = fs.Parse(args)
+
+	if *project == "" || *summary == "" {
+		die("create-issue: --project and --summary are required")
+	}
+
+	fields := map[string]any{
+		"project":   map[string]string{"key": *project},
+		"issuetype": map[string]string{"name": *issueType},
+		"summary":   *summary,
+	}
+	if body := readBody(*desc, *descFile, *descStdin); body != "" {
+		fields["description"] = body
+	}
+	if *epic != "" {
+		fields[*epicField] = *epic
+	}
+	if *assignee != "" {
+		fields["assignee"] = map[string]string{"name": *assignee}
+	}
+	if *priority != "" {
+		fields["priority"] = map[string]string{"name": *priority}
+	}
+	if *labels != "" {
+		var lbls []string
+		for _, s := range strings.Split(*labels, ",") {
+			if t := strings.TrimSpace(s); t != "" {
+				lbls = append(lbls, t)
+			}
+		}
+		if len(lbls) > 0 {
+			fields["labels"] = lbls
+		}
+	}
+
+	payload, err := json.Marshal(map[string]any{"fields": fields})
+	if err != nil {
+		die("marshal payload: %v", err)
+	}
+
+	resp, err := c.post("/issue", payload)
+	if err != nil {
+		die("create issue: %v", err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(resp, &out); err != nil {
+		die("parse response: %v", err)
+	}
+	key := jsonStr(out, "key")
+	if key == "" {
+		die("response missing key: %s", string(resp))
+	}
+	fmt.Println(key)
+}
+
+// cmdComment posts a comment on an issue.
+//
+//	<host> comment <key> --body "..."
+//	<host> comment <key> --body-file path
+//	<host> comment <key> --body-stdin
+func cmdComment(c *apiClient, args []string) {
+	if len(args) < 1 {
+		die("comment: <key> is required")
+	}
+	key := args[0]
+	fs := flag.NewFlagSet("comment", flag.ExitOnError)
+	body := fs.String("body", "", "comment body")
+	bodyFile := fs.String("body-file", "", "read comment body from file")
+	bodyStdin := fs.Bool("body-stdin", false, "read comment body from stdin")
+	_ = fs.Parse(args[1:])
+
+	text := readBody(*body, *bodyFile, *bodyStdin)
+	if strings.TrimSpace(text) == "" {
+		die("comment: body is empty (use --body, --body-file, or --body-stdin)")
+	}
+
+	payload, err := json.Marshal(map[string]any{"body": text})
+	if err != nil {
+		die("marshal payload: %v", err)
+	}
+	resp, err := c.post("/issue/"+url.PathEscape(key)+"/comment", payload)
+	if err != nil {
+		die("post comment: %v", err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(resp, &out); err != nil {
+		die("parse response: %v", err)
+	}
+	fmt.Printf("comment posted to %s: id=%s\n", key, jsonStr(out, "id"))
+}
+
+// cmdEditComment replaces the body of an existing comment.
+//
+//	<host> edit-comment <key> <comment-id> [--body ... | --body-file path | --body-stdin]
+//
+// Note: this Jira instance (and many Server/DC installs with richer auto-
+// linking) treats comment bodies as plain text with only issue-key and URL
+// auto-linking. Wiki markup like h3., {{code}}, || tables || is NOT
+// interpreted — it will render literally. Use plain prose + blank lines.
+func cmdEditComment(c *apiClient, args []string) {
+	if len(args) < 2 {
+		die("edit-comment: <key> <comment-id> required")
+	}
+	key := args[0]
+	commentID := args[1]
+
+	fs := flag.NewFlagSet("edit-comment", flag.ExitOnError)
+	body := fs.String("body", "", "new comment body")
+	bodyFile := fs.String("body-file", "", "read new comment body from file")
+	bodyStdin := fs.Bool("body-stdin", false, "read new comment body from stdin")
+	_ = fs.Parse(args[2:])
+
+	text := readBody(*body, *bodyFile, *bodyStdin)
+	if strings.TrimSpace(text) == "" {
+		die("edit-comment: body is empty (use --body, --body-file, or --body-stdin)")
+	}
+
+	payload, err := json.Marshal(map[string]any{"body": text})
+	if err != nil {
+		die("marshal payload: %v", err)
+	}
+	if _, err := c.put("/issue/"+url.PathEscape(key)+"/comment/"+url.PathEscape(commentID), payload); err != nil {
+		die("edit comment: %v", err)
+	}
+	fmt.Printf("comment %s on %s updated\n", commentID, key)
+}
+
+// cmdTransition moves an issue to a new status.
+//
+//	<host> transition <key> <transition-id>
+//	<host> transition <key> <transition-id> --comment "..."
+//
+// Use `transitions <key>` first to list the available IDs for that issue.
+func cmdTransition(c *apiClient, args []string) {
+	if len(args) < 2 {
+		die("transition: <key> <transition-id> required (use `transitions <key>` to list)")
+	}
+	key := args[0]
+	transitionID := args[1]
+
+	fs := flag.NewFlagSet("transition", flag.ExitOnError)
+	comment := fs.String("comment", "", "optional comment posted with the transition")
+	_ = fs.Parse(args[2:])
+
+	payload := map[string]any{
+		"transition": map[string]string{"id": transitionID},
+	}
+	if *comment != "" {
+		payload["update"] = map[string]any{
+			"comment": []map[string]any{
+				{"add": map[string]string{"body": *comment}},
+			},
+		}
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		die("marshal payload: %v", err)
+	}
+	if _, err := c.post("/issue/"+url.PathEscape(key)+"/transitions", body); err != nil {
+		die("transition: %v", err)
+	}
+	fmt.Printf("%s transitioned via id=%s\n", key, transitionID)
+}
+
 func printHelp() {
 	fmt.Println(`Usage: jira-navigator <host> <command> [args...]
 
@@ -1006,7 +1281,24 @@ Commands (first arg is hostname or substring matching ~/.netrc):
   <host> filters                        Favourite/saved filters
   <host> boards                         List agile boards
   <host> sprints <board-id> [state]     List sprints (active|closed|future)
-  <host> sprint-issues <sprint-id>      Issues in a sprint`)
+  <host> sprint-issues <sprint-id>      Issues in a sprint
+
+Write commands (shared-state — treat as destructive):
+  <host> create-issue --project KEY --summary "..." [flags...]
+                                        Create a new issue, print the key.
+                                        Flags: --type --epic --epic-field
+                                        --assignee --priority --labels
+                                        --desc --desc-file --desc-stdin
+  <host> comment <key> [--body ... | --body-file path | --body-stdin]
+                                        Add a comment to an issue.
+                                        (Bodies render as plain text with
+                                        issue-key auto-link on most instances;
+                                        wiki markup/markdown stays literal.)
+  <host> edit-comment <key> <comment-id> [--body ... | --body-file path | --body-stdin]
+                                        Replace the body of an existing comment.
+  <host> transition <key> <transition-id> [--comment "..."]
+                                        Move an issue to a new status.
+                                        Run 'transitions <key>' first for IDs.`)
 }
 
 // ── Main ────────────────────────────────────────────────────
@@ -1077,6 +1369,14 @@ func main() {
 		cmdSprints(client, cmdArgs)
 	case "sprint-issues":
 		cmdSprintIssues(client, cmdArgs)
+	case "create-issue":
+		cmdCreateIssue(client, cmdArgs)
+	case "comment":
+		cmdComment(client, cmdArgs)
+	case "edit-comment":
+		cmdEditComment(client, cmdArgs)
+	case "transition":
+		cmdTransition(client, cmdArgs)
 	case "help":
 		printHelp()
 	default:
