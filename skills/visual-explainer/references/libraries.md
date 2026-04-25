@@ -75,7 +75,7 @@ Always use `theme: 'base'` — it's the only theme where all `themeVariables` ar
 Mermaid renders SVG. Override its classes for pixel-perfect control that `themeVariables` can't reach:
 
 ```css
-/* Container — see css-patterns.md "Mermaid Zoom Controls" for the full zoom pattern */
+/* Container — see css-layout.md "Mermaid Containers" for the full zoom pattern */
 .mermaid-wrap {
   position: relative;
   background: var(--surface);

@@ -88,7 +88,7 @@ Verify each against the code. If something cannot be verified, mark it as uncert
 - Use semantic accent colors: gold for primary accents, sage for "after"/success states, rose for "before"/warning states
 - Both light and dark themes must work
 
-**Optional hero image** — if `surf` CLI is available (`which surf`), consider generating a conceptual illustration that captures the feature's essence. Use for abstract concepts that benefit from visual metaphor. Skip for purely structural changes. Embed as base64 data URI using the `.hero-img-wrap` pattern from css-patterns.md.
+**Optional hero image** — if `surf` CLI is available (`which surf`), consider generating a conceptual illustration that captures the feature's essence. Use for abstract concepts that benefit from visual metaphor. Skip for purely structural changes. Embed as base64 data URI using the `.hero-img-wrap` pattern from css-prose.md.
 
 **Code block requirements:**
 - Always use `white-space: pre-wrap` and `word-break: break-word`

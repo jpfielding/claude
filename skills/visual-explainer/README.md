@@ -71,10 +71,15 @@ https://github.com/user-attachments/assets/342d3558-5fcf-4fb2-bc03-f0dd5b9e35dc
 SKILL.md (workflow + design principles)
     ↓
 references/           ← agent reads before generating
-├── css-patterns.md   (layouts, animations, theming)
+├── css-foundation.md (theme, background, links)
+├── css-layout.md     (cards, code blocks, Mermaid containers, overflow)
+├── css-diagrams.md   (grid layouts, SVG connectors)
+├── css-motion.md     (animations, sparklines)
+├── css-components.md (badges, KPIs, collapsibles)
+├── css-prose.md      (prose pages, generated image containers)
 ├── libraries.md      (Mermaid, Chart.js, fonts)
 ├── responsive-nav.md (sticky TOC for multi-section pages)
-└── slide-patterns.md (slide engine, transitions, presets)
+└── slides-*.md       (6 files: planning, engine, chrome, layouts, imagery, responsive)
     ↓
 templates/            ← reference templates with different palettes
 ├── architecture.html

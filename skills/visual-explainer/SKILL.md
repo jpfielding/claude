@@ -24,7 +24,7 @@ Before writing HTML, commit to a direction. Don't default to "dark theme with bl
 
 Prose patterns (lead paragraphs, pull quotes, callout boxes) are **accent elements** within visual pages, not a separate mode. Use them to highlight key points or provide breathing room, but the page structure remains visual.
 
-For prose accents, see "Prose Page Elements" in `./references/css-patterns.md`. For everything else, use the standard freeform approach with aesthetic directions below.
+For prose accents, see `./references/css-prose.md`. For everything else, use the standard freeform approach with aesthetic directions below.
 
 **Who is looking?** A developer understanding a system? A PM seeing the big picture? A team reviewing a proposal? This shapes information density and visual complexity.
 
@@ -55,10 +55,10 @@ Vary the choice each time. If the last diagram was dark and technical, make the 
 - For text-heavy architecture overviews (card content matters more than topology): read `./templates/architecture.html`
 - For flowcharts, sequence diagrams, ER, state machines, mind maps: read `./templates/mermaid-flowchart.html`
 - For data tables, comparisons, audits, feature matrices: read `./templates/data-table.html`
-- For slide deck presentations (when `--slides` flag is present or `/generate-slides` is invoked): read `./templates/slide-deck.html` and `./references/slide-patterns.md`
-- For prose-heavy publishable pages (READMEs, articles, blog posts, essays): read the "Prose Page Elements" section in `./references/css-patterns.md` and "Typography by Content Voice" in `./references/libraries.md`
+- For slide deck presentations (when `--slides` flag is present or `/generate-slides` is invoked): read `./templates/slide-deck.html` and the `./references/slides-*.md` files (start with `slides-planning.md`, `slides-engine.md`, `slides-layouts.md`)
+- For prose-heavy publishable pages (READMEs, articles, blog posts, essays): read `./references/css-prose.md` and "Typography by Content Voice" in `./references/libraries.md`
 
-**For CSS/layout patterns and SVG connectors**, read `./references/css-patterns.md`.
+**For CSS/layout patterns and SVG connectors**, read `./references/css-foundation.md` (theme, background), `./references/css-layout.md` (cards, code blocks, Mermaid containers, overflow protection), `./references/css-diagrams.md` (grid layouts, SVG connectors), `./references/css-motion.md` (animations, sparklines), `./references/css-components.md` (badges, KPIs, collapsibles). Load only the files relevant to what you're building.
 
 **For pages with 4+ sections** (reviews, recaps, dashboards), also read `./references/responsive-nav.md` for section navigation with sticky sidebar TOC on desktop and horizontal scrollable bar on mobile.
 
@@ -103,7 +103,7 @@ IMG=$(base64 -i /tmp/ve-img.png)
 rm /tmp/ve-img.png
 ```
 
-See `./references/css-patterns.md` for image container styles (hero banners, inline illustrations, captions).
+See `./references/css-prose.md` for image container styles (hero banners, inline illustrations, captions).
 
 **When to use:** Hero banners that establish the page's visual tone. Conceptual illustrations for abstract systems that Mermaid can't express (physical infrastructure, user journeys, mental models). Educational diagrams that benefit from artistic or photorealistic rendering. Decorative accents that reinforce the aesthetic.
 
@@ -155,9 +155,9 @@ Put your primary aesthetic in `:root` and the alternate in the media query:
 
 **Backgrounds create atmosphere.** Don't use flat solid colors for the page background. Subtle gradients, faint grid patterns via CSS, or gentle radial glows behind focal areas. The background should feel like a space, not a void.
 
-**Visual weight signals importance.** Not every section deserves equal visual treatment. Executive summaries and key metrics should dominate the viewport on load (larger type, more padding, subtle accent-tinted background zone). Reference sections (file maps, dependency lists, decision logs) should be compact and stay out of the way. Use `<details>/<summary>` for sections that are useful but not primary — the collapsible pattern is in `./references/css-patterns.md`.
+**Visual weight signals importance.** Not every section deserves equal visual treatment. Executive summaries and key metrics should dominate the viewport on load (larger type, more padding, subtle accent-tinted background zone). Reference sections (file maps, dependency lists, decision logs) should be compact and stay out of the way. Use `<details>/<summary>` for sections that are useful but not primary — the collapsible pattern is in `./references/css-components.md`.
 
-**Surface depth creates hierarchy.** Vary card depth to signal what matters. Hero sections get elevated shadows and accent-tinted backgrounds (`ve-card--hero` pattern). Body content stays flat (default `.ve-card`). Code blocks and secondary content feel recessed (`ve-card--recessed`). See the depth tiers in `./references/css-patterns.md`. Don't make everything elevated — when everything pops, nothing does.
+**Surface depth creates hierarchy.** Vary card depth to signal what matters. Hero sections get elevated shadows and accent-tinted backgrounds (`ve-card--hero` pattern). Body content stays flat (default `.ve-card`). Code blocks and secondary content feel recessed (`ve-card--recessed`). See the depth tiers in `./references/css-layout.md`. Don't make everything elevated — when everything pops, nothing does.
 
 **Animation earns its place.** Staggered fade-ins on page load are almost always worth it — they guide the eye through the diagram's hierarchy. Mix animation types by role: `fadeUp` for cards, `fadeScale` for KPIs and badges, `drawIn` for SVG connectors, `countUp` for hero numbers. Hover transitions on interactive-feeling elements make the diagram feel alive. Always respect `prefers-reduced-motion`. CSS transitions and keyframes handle most cases. For orchestrated multi-element sequences, anime.js via CDN is available (see `./references/libraries.md`).
 
@@ -249,7 +249,7 @@ For visualizing implementation plans, extension designs, or feature specificatio
 - Show **key snippets only** — the 5-10 lines that illustrate the core logic
 - Use **collapsible sections** for full code if truly needed
 
-**Code blocks require explicit formatting.** Without `white-space: pre-wrap`, code runs together into an unreadable wall. See the "Code Blocks" section in `./references/css-patterns.md` for the correct pattern.
+**Code blocks require explicit formatting.** Without `white-space: pre-wrap`, code runs together into an unreadable wall. See the "Code Blocks" section in `./references/css-layout.md` for the correct pattern.
 
 **Structure for implementation plans:**
 1. Overview/purpose (what problem does this solve?)
@@ -277,7 +277,7 @@ Don't just format the prose — transform it. A feature list becomes a card grid
 
 ### Prose Accent Elements
 
-Use these sparingly within visual pages to highlight key points or provide breathing room. See "Prose Page Elements" in `./references/css-patterns.md` for CSS patterns.
+Use these sparingly within visual pages to highlight key points or provide breathing room. See `./references/css-prose.md` for CSS patterns.
 
 - **Lead paragraph** — larger intro text to set context before diving into cards/grids
 - **Pull quote** — highlight a key insight; one per page maximum
@@ -290,19 +290,19 @@ Use these sparingly within visual pages to highlight key points or provide breat
 
 An alternative output format for presenting content as a magazine-quality slide presentation instead of a scrollable page. **Opt-in only** — the agent generates slides when the user invokes `/generate-slides`, passes `--slides` to an existing prompt (e.g., `/diff-review --slides`), or explicitly asks for a slide deck. Never auto-select slide format.
 
-**Before generating slides**, read `./references/slide-patterns.md` (engine CSS, slide types, transitions, nav chrome, presets) and `./templates/slide-deck.html` (reference template showing all 10 types). Also read `./references/css-patterns.md` for shared patterns and `./references/libraries.md` for Mermaid/Chart.js theming.
+**Before generating slides**, read `./templates/slide-deck.html` (reference template showing all 10 types) and the relevant `./references/slides-*.md` files: `slides-planning.md` (deck structure), `slides-engine.md` (base CSS + JS runtime + auto-fit), `slides-chrome.md` (typography, transitions, nav), `slides-layouts.md` (the 10 slide types), `slides-imagery.md` (decoration + proactive imagery), `slides-responsive.md` (breakpoints + curated presets). Also read `./references/css-layout.md` for shared CSS patterns and `./references/libraries.md` for Mermaid/Chart.js theming.
 
 **Slides are not pages reformatted.** They're a different medium. Each slide is exactly one viewport tall (100dvh) with no scrolling. Typography is 2–3× larger. Compositions are bolder. The agent composes a narrative arc (impact → context → deep dive → resolution) rather than mechanically paginating the source.
 
-**Content completeness.** Changing the medium does not mean dropping content. Follow the "Planning a Deck from a Source Document" process in `slide-patterns.md` before writing any HTML: inventory the source, map every item to slides, verify coverage. Every section, decision, data point, specification, and collapsible detail from the source must appear in the deck. If a plan has 7 sections, the deck covers all 7. If there are 6 decisions, present all 6 — not the 2 that fit on one slide. Collapsible details in the source become their own slides. Add more slides rather than cutting content. A 22-slide deck that covers everything beats a 13-slide deck that looks polished but is missing 40% of the source.
+**Content completeness.** Changing the medium does not mean dropping content. Follow the "Planning a Deck from a Source Document" process in `slides-planning.md` before writing any HTML: inventory the source, map every item to slides, verify coverage. Every section, decision, data point, specification, and collapsible detail from the source must appear in the deck. If a plan has 7 sections, the deck covers all 7. If there are 6 decisions, present all 6 — not the 2 that fit on one slide. Collapsible details in the source become their own slides. Add more slides rather than cutting content. A 22-slide deck that covers everything beats a 13-slide deck that looks polished but is missing 40% of the source.
 
-**Slide types (10):** Title, Section Divider, Content, Split, Diagram, Dashboard, Table, Code, Quote, Full-Bleed. Each has a defined layout in `slide-patterns.md`. Content that exceeds a slide's density limit splits across multiple slides — never scrolls within a slide.
+**Slide types (10):** Title, Section Divider, Content, Split, Diagram, Dashboard, Table, Code, Quote, Full-Bleed. Each has a defined layout in `slides-layouts.md`. Content that exceeds a slide's density limit splits across multiple slides — never scrolls within a slide.
 
-**Visual richness:** Check `which surf` at the start. If surf-cli is available, generate 2–4 images (title slide background, full-bleed background, optional content illustrations) before writing HTML — see the Proactive Imagery section in `slide-patterns.md` for the workflow. Also use SVG decorative accents, per-slide background gradients, inline sparklines, and small Mermaid diagrams. Visual-first, text-second.
+**Visual richness:** Check `which surf` at the start. If surf-cli is available, generate 2–4 images (title slide background, full-bleed background, optional content illustrations) before writing HTML — see the Proactive Imagery section in `slides-imagery.md` for the workflow. Also use SVG decorative accents, per-slide background gradients, inline sparklines, and small Mermaid diagrams. Visual-first, text-second.
 
 **Compositional variety:** Consecutive slides must vary spatial approach — centered, left-heavy, right-heavy, split, edge-aligned, full-bleed. Three centered slides in a row means push one off-axis.
 
-**Curated presets:** Four slide-specific presets as starting points (Midnight Editorial, Warm Signal, Terminal Mono, Swiss Clean) plus the existing 8 aesthetic directions adapted for slides. Pick one and commit. See `slide-patterns.md` for preset CSS values.
+**Curated presets:** Four slide-specific presets as starting points (Midnight Editorial, Warm Signal, Terminal Mono, Swiss Clean) plus the existing 8 aesthetic directions adapted for slides. Pick one and commit. See `slides-responsive.md` for preset CSS values.
 
 **`--slides` flag on existing prompts:** When a user passes `--slides` to `/diff-review`, `/plan-review`, `/project-recap`, or other prompts, the agent gathers data using the prompt's normal data-gathering instructions, then presents the content as a slide deck instead of a scrollable page. The slide version tells the same story with different structure and pacing — but the same breadth of coverage. Don't use the slide format as an excuse to summarize or skip sections that the scrollable version would have included.
 
@@ -337,8 +337,8 @@ Before delivering, verify:
 - **The swap test**: Would replacing your fonts and colors with a generic dark theme make this indistinguishable from a template? If yes, push the aesthetic further.
 - **Both themes**: Toggle your OS between light and dark mode. Both should look intentional, not broken.
 - **Information completeness**: Does the diagram actually convey what the user asked for? Pretty but incomplete is a failure.
-- **No overflow**: Resize the browser to different widths. No content should clip or escape its container. Every grid and flex child needs `min-width: 0`. Side-by-side panels need `overflow-wrap: break-word`. Never use `display: flex` on `<li>` for marker characters — it creates anonymous flex items that can't shrink, causing lines with many inline `<code>` badges to overflow. Use absolute positioning for markers instead. See the Overflow Protection section in `./references/css-patterns.md`.
-- **Mermaid zoom controls**: Every `.mermaid-wrap` container must have zoom controls (+/−/reset buttons), Ctrl/Cmd+scroll zoom, and click-and-drag panning. Complex diagrams render too small without them. The cursor should change to `grab` when zoomed in and `grabbing` while dragging. See `./references/css-patterns.md` for the full pattern.
+- **No overflow**: Resize the browser to different widths. No content should clip or escape its container. Every grid and flex child needs `min-width: 0`. Side-by-side panels need `overflow-wrap: break-word`. Never use `display: flex` on `<li>` for marker characters — it creates anonymous flex items that can't shrink, causing lines with many inline `<code>` badges to overflow. Use absolute positioning for markers instead. See the Overflow Protection section in `./references/css-layout.md`.
+- **Mermaid zoom controls**: Every `.mermaid-wrap` container must have zoom controls (+/−/reset buttons), Ctrl/Cmd+scroll zoom, and click-and-drag panning. Complex diagrams render too small without them. The cursor should change to `grab` when zoomed in and `grabbing` while dragging. See `./references/css-layout.md` (Mermaid Containers) for the full pattern.
 - **File opens cleanly**: No console errors, no broken font loads, no layout shifts.
 
 ## Anti-Patterns (AI Slop)
