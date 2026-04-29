@@ -1,4 +1,6 @@
 .DS_Store
+mcp-needs-auth-cache.json
+policy-limits.json
 backups
 cache
 agents/.system
