@@ -1,8 +1,8 @@
 ---
-name: debugger
-description: Debugging specialist for errors, test failures, and unexpected behavior. Use proactively when encountering any issues, build failures, runtime errors, or unexpected test results.
-category: quality-security
-model: opus
+name: golang-expert
+description: Write idiomatic Go code with goroutines, channels, and interfaces. Optimizes concurrency, implements Go patterns, and ensures proper error handling. Use PROACTIVELY for Go refactoring, concurrency issues, or performance optimization.
+category: language-specialists
+model: inherit
 ---
 
 
