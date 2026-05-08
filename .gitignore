@@ -25,3 +25,5 @@ debug
 session-env
 settings.json
 stats-cache.json
+.credentials.json
+.last-cleanup
