@@ -27,3 +27,5 @@ settings.json
 stats-cache.json
 .credentials.json
 .last-cleanup
+.last-update-result.json
+remote-settings.json

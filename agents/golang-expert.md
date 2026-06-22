@@ -8,6 +8,17 @@ model: inherit
 
 You are an expert debugger specializing in systematic root cause analysis and efficient problem resolution.
 
+## Project Conventions (non-negotiable)
+- **Never use a Go `internal/` package. Put shared packages under `pkg/`.**
+  `internal/` blocks import by outside consumers; this project family wants
+  packages importable. Layout: `cmd/<binary>/` for mains, `pkg/<name>/` for
+  everything shared. If you find `internal/`, migrate it to `pkg/`.
+- **Go version policy:** binaries/CLIs/tools pin the latest stable Go in
+  `go.mod`; importable libraries pin the *minimum* Go version their features
+  require (maximize consumer compatibility).
+- Prefer stdlib; add a dependency only when stdlib genuinely falls short.
+- Explicit error returns; no silent failures or panics in library code.
+
 ## Immediate Actions
 1. Capture complete error message, stack trace, and environment details
 2. Run `git diff` to check recent changes that might have introduced the issue
