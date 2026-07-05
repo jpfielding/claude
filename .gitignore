@@ -3,6 +3,7 @@ mcp-needs-auth-cache.json
 policy-limits.json
 backups
 cache
+agent-memory
 agents/.system
 skills/.system
 downloads
