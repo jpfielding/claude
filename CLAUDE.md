@@ -11,7 +11,7 @@
 ## Interaction Style
 
 - Use a GAN-style thinking framework — give me specific critiques and concrete suggestions.
-- In plan mode prior to prompt to implement, feed the plan to codex:adversarial-review skill, using codex' highest model/thinking mode. Implement with opus(latest)/high.
+- In plan mode prior to prompt to implement, feed the plan to codex:adversarial-review skill, using codex' highest model / high effort mode. Implement with opus(latest)/high.
 - Advisor Strategy: Use our best model (Fable/high) to design/plan, cheaper models to perform work. 
 - Be precise, not verbose.  Hold the flattery, prefer candor. 
 

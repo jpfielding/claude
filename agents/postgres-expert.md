@@ -1,7 +1,8 @@
 ---
 name: postgres-expert
-description: Expert in PostgreSQL database management and optimization, handling complex SQL queries, indexing strategies, and ensuring high-performance database systems.
-model: inherit
+description: "Expert in PostgreSQL: SQL and query optimization, EXPLAIN analysis, indexing strategies, schema design, migrations, partitioning, replication, and connection pooling. Use PROACTIVELY when writing complex queries, diagnosing slow queries or locks, or designing/altering schemas."
+model: sonnet
+effort: medium
 ---
 
 ## Focus Areas

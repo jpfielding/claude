@@ -3,6 +3,7 @@ name: linux-security
 description: "Use this agent for Linux security hardening, compliance, and defensive measures: SELinux/AppArmor configuration, firewall management (firewalld/iptables/nftables), SSH hardening, audit logging, vulnerability scanning, and security baseline enforcement. Use PROACTIVELY when implementing security controls or addressing compliance requirements."
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
+effort: high
 color: orange
 ---
 

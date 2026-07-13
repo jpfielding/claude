@@ -1,7 +1,8 @@
 ---
 name: test-automator
 description: Create comprehensive test suites with unit tests. Sets up mocking strategies, and test data. Use PROACTIVELY for test coverage improvement.
-category: quality-security
+model: opus
+effort: high
 ---
 
 

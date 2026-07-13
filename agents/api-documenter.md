@@ -1,7 +1,8 @@
 ---
 name: api-documenter
 description: Create OpenAPI/Swagger specs, generate SDKs, and write developer documentation. Handles versioning, examples, and interactive docs. Use PROACTIVELY for API documentation or client library generation.
-category: specialized-domains
+model: sonnet
+effort: medium
 ---
 
 

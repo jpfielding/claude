@@ -3,6 +3,7 @@ name: linux-container-expert
 description: "Use this agent for container base image selection, Dockerfile optimization, multi-stage builds, image size reduction, layer caching strategies, security scanning, and distroless image creation. Covers Alpine, RHEL UBI, Ubuntu, Debian, and distroless base images. Use PROACTIVELY when building container images or optimizing existing Dockerfiles."
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
+effort: medium
 color: yellow
 ---
 

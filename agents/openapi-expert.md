@@ -1,7 +1,8 @@
 ---
 name: openapi-expert
-description: Expert in designing, documenting, and optimizing APIs using OpenAPI specifications.
-model: inherit
+description: "Expert in OpenAPI 3.x specification design: schema modeling, $ref composition, versioning, validation, linting (Spectral), and codegen. Use PROACTIVELY when authoring or reviewing OpenAPI specs, keeping specs in sync with handlers, or generating clients/servers from a spec."
+model: sonnet
+effort: medium
 ---
 
 ## Focus Areas

@@ -1,7 +1,8 @@
 ---
 name: gitlab-ci-expert
-description: Expert in configuring, optimizing, and maintaining GitLab CI/CD pipelines for efficient software delivery.
-model: inherit
+description: "Expert in GitLab CI/CD: .gitlab-ci.yml authoring, stages/rules/needs DAGs, caching, artifacts, runners, includes/templates, and multi-project pipelines. Use PROACTIVELY when creating or debugging GitLab pipelines, optimizing pipeline duration, or migrating CI config."
+model: sonnet
+effort: medium
 ---
 
 ## Focus Areas

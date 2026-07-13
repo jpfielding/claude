@@ -1,7 +1,8 @@
 ---
 name: playwright-expert
-description: Expert in Playwright testing for modern web applications. Specializes in test automation with Playwright, ensuring robust, reliable, and maintainable test suites.
-model: inherit
+description: "Expert in Playwright end-to-end testing: locators, fixtures, page objects, network interception, parallelism, tracing, and CI integration. Use PROACTIVELY when writing or stabilizing e2e tests, debugging flaky selectors/timeouts, or setting up Playwright projects and reporters."
+model: sonnet
+effort: medium
 ---
 
 ## Focus Areas

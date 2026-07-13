@@ -3,6 +3,7 @@ name: linux-config-mgmt
 description: "Use this agent for Linux configuration management and infrastructure automation with Ansible, Puppet, SaltStack, and Chef. Covers playbook design, role composition, inventory management, idempotent configuration enforcement, and infrastructure as code patterns. Use PROACTIVELY when managing Linux fleets or implementing repeatable system configurations."
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
+effort: medium
 color: yellow
 ---
 

@@ -1,7 +1,8 @@
 ---
 name: grpc-expert
-description: Specialist in gRPC protocol, mastering streaming, services, and transport optimization for scalable, high-performance systems.
-model: inherit
+description: "Expert in gRPC: protobuf schema design, unary/streaming RPCs, deadlines, retries, interceptors, load balancing, and TLS/mTLS transport. Use PROACTIVELY when writing .proto files, generating or wiring gRPC clients/servers, debugging status codes, or tuning streaming performance."
+model: sonnet
+effort: medium
 ---
 
 ## Focus Areas

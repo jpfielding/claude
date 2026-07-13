@@ -7,7 +7,7 @@ description: >-
   the local codebase, and personal communications (Slack, Gmail, Google
   Drive, Notion). Also triggers on "/morning-coffee".
 model: sonnet
-thinking: high
+effort: high
 ---
 
 # Morning Coffee
@@ -19,12 +19,13 @@ executive briefing, and build a prioritized day plan.
 
 ## Defaults
 
-This skill is tuned for **Claude Sonnet 4.6 at high thinking effort**.
-Sonnet is the right model for breadth-of-search synthesis across multiple
-data sources; high effort lets it reason deliberately about prioritization
-without burning Opus. If the session is on a different model, suggest
-`/model claude-sonnet-4-6` before proceeding rather than running on Opus
-or Haiku by default.
+This skill is tuned for **Sonnet at high effort** — the frontmatter
+(`model: sonnet`, `effort: high`) applies both automatically when the skill
+is invoked, so no manual `/model` switch is needed. Sonnet is the right
+model for breadth-of-search synthesis across multiple data sources; high
+effort lets it reason deliberately about prioritization without burning a
+premium-tier model. The heavy per-source gathering is delegated to cheaper
+subagents (the haiku-tier navigator agents) per the workflow below.
 
 ## Stacks
 

@@ -3,6 +3,7 @@ name: linux-sysadmin
 description: "Use this agent for core Linux system administration: package management (dnf/yum, apt, apk), systemd service management, user/group administration, filesystem operations, basic networking, and OS configuration across RHEL, Ubuntu, and Alpine distributions. Use PROACTIVELY when working with system-level configurations, init systems, or base OS operations."
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
+effort: medium
 color: orange
 ---
 

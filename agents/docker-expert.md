@@ -1,7 +1,8 @@
 ---
 name: docker-expert
-description: Expert in all aspects of Docker, including containerization, image creation, and orchestration.
-model: inherit
+description: "Expert in Docker containerization: Dockerfiles, multi-stage builds, image optimization, docker-compose, networking, volumes, and registry workflows. Use PROACTIVELY when writing or debugging Dockerfiles, composing multi-container dev environments, slimming images, or troubleshooting container build/runtime failures."
+model: sonnet
+effort: medium
 ---
 
 ## Focus Areas

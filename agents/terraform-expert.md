@@ -1,7 +1,8 @@
 ---
 name: terraform-expert
-description: Expert in infrastructure-as-code using Terraform, specializing in efficient and reliable infrastructure provisioning and management.
-model: inherit
+description: "Expert in Terraform/OpenTofu infrastructure-as-code: module design, state management, workspaces, providers, plan/apply hygiene, and drift detection. Use PROACTIVELY when authoring or refactoring Terraform modules, reviewing plans, debugging state issues, or structuring multi-environment IaC."
+model: sonnet
+effort: medium
 ---
 
 ## Focus Areas

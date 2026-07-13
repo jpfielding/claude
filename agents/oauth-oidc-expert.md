@@ -1,7 +1,8 @@
 ---
 name: oauth-oidc-expert
-description: Expert in OAuth 2.0 and OpenID Connect (OIDC) for secure authentication and authorization.
-model: inherit
+description: "Expert in OAuth 2.0 and OpenID Connect: authorization flows (auth code + PKCE, client credentials, device), token validation, JWKS, session management, and IdP integration (Keycloak, Entra ID, Okta). Use PROACTIVELY when designing or reviewing auth flows, debugging token/claim issues, or hardening redirect and scope handling."
+model: sonnet
+effort: high
 ---
 
 ## Focus Areas

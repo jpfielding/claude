@@ -2,6 +2,7 @@
 name: graphql-expert
 description: Expert in GraphQL API design, query optimization, and implementation. Master introspection, schemas, and GraphQL best practices. Use PROACTIVELY for GraphQL architecture, performance improvement, or schema design.
 model: sonnet
+effort: medium
 ---
 
 ## Focus Areas

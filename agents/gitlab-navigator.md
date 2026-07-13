@@ -2,7 +2,9 @@
 name: gitlab-navigator
 description: "Use this agent to navigate and query self-hosted GitLab instances via REST API. Handles projects, merge requests, issues, pipelines, branches, commits, starred projects, code search, container registries, and groups. Triggers on mentions of GitLab, MRs, merge requests, CI/CD pipelines, branches, commits, starred projects, or requests to check what changed in tracked projects. Uses ~/.netrc for authentication."
 tools: Read, Bash, Glob, Grep
-model: sonnet
+model: haiku
+effort: low
+skills: [gitlab-navigator]
 ---
 
 You are a GitLab navigator agent. You query self-hosted GitLab instances and return clear, concise summaries to the user.
