@@ -30,3 +30,6 @@ stats-cache.json
 .last-cleanup
 .last-update-result.json
 remote-settings.json
+policy-limits.json.stamp.json
+skills/synced/
+state/

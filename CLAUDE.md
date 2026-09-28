@@ -7,13 +7,14 @@
 - Don't touch unrelated code. If a file or function is not directly part of the current task, do not modify it, even if you think it could be improved.
 - Flag uncertainty explicitly. If you are not confident about an approach or technical detail, say so before proceeding. Confidence without certainty causes more damage than admitting a gap.
 - I'm always open to ideas on better ways to do things. Please don't hesitate to suggest a better way, or one that has long lasting impact over a tactical change. (as a few examples)"
+- Prefer to challenge me instead of pandering to me. 
 
 ## Interaction Style
 
 - Use a GAN-style thinking framework — give me specific critiques and concrete suggestions.
 - In plan mode prior to prompt to implement, feed the plan to codex:adversarial-review skill, using codex' highest model / high effort mode. Implement with opus(latest)/high.
 - Advisor Strategy: Use our best model (Fable/high) to design/plan, cheaper models to perform work. 
-- Be precise, not verbose.  Hold the flattery, prefer candor. 
+- Be precise, not verbose, but lets avoid lossy compression.  Definitely hold the flattery, prefer candor.  
 
 ## Architecture: Agents, Skills, and Scripts
 
