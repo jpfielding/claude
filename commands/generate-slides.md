@@ -1,18 +1,16 @@
 ---
-description: Generate a stunning magazine-quality slide deck as a self-contained HTML page
+name: generate-slides
+description: Generate a slide deck as a self-contained HTML page
 ---
-Load the visual-explainer skill, then generate a slide deck for: $@
 
-Follow the visual-explainer skill workflow. Read the reference template at `./templates/slide-deck.html` and slide patterns at `./references/slide-patterns.md` before generating. Also read `./references/css-patterns.md` for shared patterns (Mermaid zoom controls, depth tiers, overflow protection) and `./references/libraries.md` for Mermaid theming, Chart.js, and font pairings.
+Load the visual-explainer skill and generate a slide deck for: $@
 
-**Slide output is always opt-in.** Only generate slides when this command is invoked or the user explicitly asks for a slide deck.
+If `$@` contains the literal `--pptx` flag, remove that flag from the topic. Generate the HTML slide deck first, then run the best-effort static exporter with `visual-explainer-pptx <deck.html> <deck.pptx>` from package installs or `node ~/.claude/skills/visual-explainer/pptx/export.mjs <deck.html> <deck.pptx>` from a checkout after dependencies are installed. If the exporter dependencies are not available, deliver the HTML deck and explain that PPTX export needs the package install or checkout dependencies. Tell the user that the HTML deck remains the source of truth and the PPTX will not preserve animations, reader navigation, responsive layout, custom fonts, live Mermaid/Chart.js/SVG/canvas rendering, or JavaScript behavior.
 
-**Aesthetic:** Pick a distinctive direction from the 4 slide presets in slide-patterns.md (Midnight Editorial, Warm Signal, Terminal Mono, Swiss Clean) or riff on the existing 8 aesthetic directions adapted for slides. Vary from previous decks. Commit to one direction and carry it through every slide.
+Before writing HTML, read `~/.claude/skills/visual-explainer/templates/slide-deck.html`, `~/.claude/skills/visual-explainer/references/slide-patterns.md`, and only the shared CSS/library sections needed for the source.
 
-**Narrative structure:** Slides have a temporal dimension — compose a story arc, not a list of sections. Start with impact (title), build context (overview), deep dive (content, diagrams, data), resolve (summary/next steps). Plan the slide sequence and assign a composition (centered, left-heavy, split, full-bleed) to each slide before writing HTML.
+Plan the deck first: inventory the source, map every item to slides, choose a narrative arc, and assign a composition to each slide. Use the 10 slide types and nav chrome from `slide-patterns.md`/`slide-deck.html`, including carousel dots, prev/next, slide count, and keyboard controls. Treat `100dvh` as a hard content budget: split dense content across slides rather than scrolling or dropping content. Before delivery, enable `prefers-reduced-motion: reduce` at the target viewport and a short landscape height; fix every overflow or `autoFit()` warning before shipping.
 
-**Visual richness:** Proactively reach for visuals. If `surf` CLI is available (`which surf`), generate images for title slide backgrounds and full-bleed slides via `surf gemini --generate-image`. Add SVG decorative accents, inline sparklines, mini-charts, and small Mermaid diagrams where they make the story more compelling. Visual-first, text-second.
+Use visual-first slides: diagrams, charts, tables, SVG accents, and images from `surf` only when they clarify the story. Vary compositions; three centered slides in a row is a smell.
 
-**Compositional variety:** Consecutive slides must vary their spatial approach. Alternate between centered, left-heavy, right-heavy, split, edge-aligned, and full-bleed. Three centered slides in a row means push one off-axis.
-
-Write to `~/.agent/diagrams/` and open the result in the browser.
+Write to `~/.agent/diagrams/` and open in the browser.

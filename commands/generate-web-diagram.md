@@ -1,10 +1,12 @@
 ---
-description: Generate a beautiful standalone HTML diagram and open it in the browser
+name: generate-web-diagram
+description: Generate a standalone HTML diagram and open it in the browser
 ---
-Load the visual-explainer skill, then generate an HTML diagram for: $@
 
-Follow the visual-explainer skill workflow. Read the reference template and CSS patterns before generating. Pick a distinctive aesthetic that fits the content — vary fonts, palette, and layout style from previous diagrams.
+Load the visual-explainer skill and generate an HTML visual explainer for: $@
 
-If `surf` CLI is available (`which surf`), consider generating an AI illustration via `surf gemini --generate-image` when an image would genuinely enhance the page — a hero banner, conceptual illustration, or educational diagram that Mermaid can't express. Match the image style to the page's palette. Embed as base64 data URI. See css-patterns.md "Generated Images" for container styles. Skip images when the topic is purely structural or data-driven.
+If `$@` contains the literal `--quick` flag, remove that flag from the topic, read `~/.claude/skills/visual-explainer/quick/README.md` and `~/.claude/skills/visual-explainer/quick/schema.json`, and emit a compact JSON spec instead of HTML. In Pi, call `visual_explainer` with `action: "render_quick"`, a descriptive filename, and the spec. In other harnesses, save the spec and run `node ~/.claude/skills/visual-explainer/quick/render.mjs <spec.json> <output.html>` from the installed skill directory. If the topic does not fit the schema, validation fails, or rendering errors, continue with the full HTML workflow below. Without `--quick`, do not use quick mode.
 
-Write to `~/.agent/diagrams/` and open the result in the browser.
+Use the skill’s reference routing and final checklist. Pick a representation that fits the topic: Mermaid for connected flows/topologies; CSS cards for text-heavy explanations; tables for matrices; timelines for linear history.
+
+Write to `~/.agent/diagrams/` with a descriptive filename and open the result in the browser. In Pi package installs, this is an explicit visual request: use `visual_explainer.prepare` when planning/context scouting helps, then `visual_explainer.render` with the complete HTML.

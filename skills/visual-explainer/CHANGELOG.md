@@ -1,5 +1,218 @@
 # Changelog
 
+## [Unreleased]
+
+## [0.11.0] - 2026-08-28
+
+### Highlights
+- MCP users can choose where local HTML renders are saved without losing the default safe output directory.
+- Install instructions are clearer across Cursor, Antigravity, Codex, and OpenCode, including safer Windows copy commands.
+- Release metadata now has a guardrail so package and plugin versions stay in sync.
+- Slide decks make over-budget content easier to spot during reduced-motion review.
+- Local `file://` previews are quieter and more reliable when using the responsive table of contents.
+
+### Added
+- Added optional `VISUAL_EXPLAINER_OUTPUT_DIR` support for MCP renders. The default remains `~/.agent/diagrams/`, and custom directories still stay inside a local output jail. Requested by [@bertheto](https://github.com/bertheto) in #88.
+- Added rem-based type-scale guidance for non-slide, scrollable pages, with copyable role selectors and readable minimums. Based on PR #95 by [@ZanziPanzi](https://github.com/ZanziPanzi).
+
+### Compatibility
+- Documented native Cursor global and workspace skill paths, plus staged PowerShell install commands with rollback for Antigravity, Codex, and OpenCode. Credit: [@bertheto](https://github.com/bertheto) for #86/#90.
+
+### Fixed
+- Fixed the stale nested Claude plugin version that made Claude Code report the wrong latest version after `0.10.0`, and added a version check across package, marketplace, plugin, and skill metadata. Reported by [@proxet-p35](https://github.com/proxet-p35) in #93.
+- Added a reduced-motion slide budget check that marks vertical overflow and `autoFit()` fallbacks instead of silently clipping or shrinking over-budget content. Reported by [@bertheto](https://github.com/bertheto) in #92.
+- Guarded the responsive-nav table-of-contents history update for `file://` pages so local scrolling still works without console errors. Based on PR #94 by [@ZanziPanzi](https://github.com/ZanziPanzi).
+
+## [0.10.0] - 2026-08-20
+
+### Highlights
+- Visual explanations now choose a calmer or more expressive treatment based on the request instead of defaulting to the same look every time.
+- Repo-aware pages now prefer the project's own design language before falling back to built-in visual directions.
+- Diagrams now get stronger guidance on what to show, not just how to render Mermaid.
+- The skill now includes a clearer accessibility and dual-theme baseline for generated pages.
+
+### Added
+- Added design-judgment guidance for matching the visual treatment to the request, planning a specific design before writing HTML, and avoiding generic generated-page patterns.
+- Added project design-system precedence so repo-anchored pages can follow existing theme tokens, component styles, and visual vocabulary.
+- Added content-anchored aesthetic directions for CLI, infrastructure, metrics, architecture, recap, and prose-heavy pages.
+- Added diagram rhetoric guidance that asks diagrams to show the mechanism, label arrows, compare differences directly, and make one clear claim per figure.
+- Added craft guidance for dual color schemes, type setting, neutrals, spacing, microcopy, dashboard readability, keyboard focus states, and diagram captions.
+
+### Fixed
+- Synchronized Claude Code marketplace and skill metadata versions after the mismatch reported by @romkazor in #83.
+
+## [0.9.0] - 2026-08-13
+
+### Added
+- Added a best-effort static PPTX export utility for simple HTML slide decks. It extracts slide text, bullets, simple tables, code blocks, and diagram placeholders while keeping HTML as the source of truth. Requested by @romkazor in #50.
+- Added a local stdio MCP server that exposes render tools, bundled prompt templates, and read-only skill resources without HTTP, auth, remote storage, or LLM calls. Requested by @luketych in #33.
+- Added VS Code Copilot and Copilot CLI custom-instruction guidance that points to the canonical skill without claiming native Copilot support. Reported in #8 by @Tal94NICE, with ideas from @davida26 and @jcespinoza.
+- Added optional Markdown companion guidance for explicitly requested AI-readable output or source briefs. Companions sit beside HTML output and never become its source. Requested by @mrns in #34.
+- Added opt-in `--quick` rendering for web diagrams, diff reviews, plan reviews, and project recaps. Agents emit a compact validated JSON spec, and the bundled renderer creates complete HTML through the existing Pi tool or a local script fallback. Based on the original RFC idea and PR #12 by @mikeyobrien.
+- Added Antigravity CLI install guidance using its native Agent Skills paths, replacing the blocked consumer Gemini CLI support path. Reported by @chadbr in #6.
+- Added an optional Glimpse viewer for Pi renders through `visual_explainer` with `viewer: "glimpse"` or `viewer: "auto"`. Requested by @bjesuiter in #55 and prototyped in PR #56.
+- Added a standard self-contained favicon to rendered pages and reference templates. Based on PR #62 by @zereraz.
+- Added reader-first slide deck navigation with an expandable side rail, outline/help overlays, deep links, reading percent, and resume state. Based on PR #65 and PR #67 by @zereraz.
+- Added an optional runtime theme and font picker with eleven prebuilt palettes in `references/themes.md`, deriving all Mermaid `themeVariables` and the diagram label font from the active selection so diagrams stay consistent with the page. Font pairs are drawn from the families the skill already recommends. Rebuilt smaller from PR #42 by @turkycat.
+
+### Fixed
+- Fixed expanded-diagram exports painting a fixed background color rather than the live page palette, so an exported diagram matches the page it came from.
+- Kept slide-deck content visible in no-JS previews such as QuickLook by gating entrance-hidden states on JavaScript availability. Reported by @bradleyy in #68.
+- Hardened Pi render output with missing `html lang`, missing viewport metadata, and display-math escaping for raw `<` / `>` inside `$$...$$`. Based on PR #65 and PR #67 by @zereraz.
+- Added font-weight guidance so copied Google Fonts examples load each rendered weight, including mono labels. Based on PR #60 by @jowcy.
+- Added small maintenance fixes for `node_modules/` ignores, slide-deck button types, output-directory symlink checks, and older changelog ordering. Based on PR #66 by @fix2015.
+
+## [0.8.2] - 2026-08-13
+
+### Added
+- Added Pi package gallery image metadata using `banner.png`.
+
+## [0.8.1] - 2026-06-25
+
+### Fixed
+- Removed the invalid Claude Code plugin `skills: ["./"]` manifest entry so the marketplace plugin no longer trips the `Path escapes plugin directory` loader error. Reported by @aidansommers in #49, @fessygaspard-cpu in #51, @frntman in #58, and @syxc in #59, with confirmations and follow-up from @MauricioCorzo, @umar-s, @marcuslannister, and @NikiforovAll.
+- Added the required `description` frontmatter to the canonical `visual-explainer` skill so Agent Skills loaders can discover it without metadata warnings.
+- Added explicit `name` frontmatter to bundled command templates for loaders that do not infer command names from filenames. Based on the NLPM audit reports #46 and #48 and PR #43 from @xiaolai.
+- Updated the canonical Mermaid SVG insertion pattern to parse rendered SVG through the lenient HTML parser instead of assigning `innerHTML`, preserving Mermaid 10+/11 `foreignObject` labels while avoiding common scanner warnings. Based on issue #37 and PR #54 from @thomnico.
+
+## [0.8.0] - 2026-06-24
+
+### Added
+- Added one Pi extension tool, `visual_explainer`, with `prepare` for permission-aware visual explanation planning and optional subagent scouting, plus `render` for writing and opening generated HTML pages while keeping `/generate-web-diagram` as a prompt template.
+
+### Changed
+- Compressed the visual-explainer skill and command prompts from 10,824 words to 2,131 words, an 80%+ reduction in prompt tokens, while preserving the hard rendering, Mermaid, table, slide, and review-section requirements.
+
+## [0.7.1] - 2026-04-27
+
+### Compatibility
+- Added first-class Pi package metadata so `pi install` can load the canonical `plugins/visual-explainer/` skill and command templates directly from the repo.
+- Preserved the Claude Code marketplace layout while synchronizing package and plugin manifest versions to `0.7.1`.
+- Added lightweight harness guidance for Pi, Codex CLI, OpenCode/opencode, Cursor, and OpenClaw without duplicating skill directories or adding runtime adapters.
+- Documented migration cleanup for older manual Pi installs, which can otherwise shadow package resources with copied user-level skill and prompt files.
+
+### Changed
+- Made `pi install` the primary Pi installation path while keeping the legacy installer documented as an explicit copied-file alternative.
+
+## [0.6.3] - 2026-03-09
+
+### Documentation
+- Added explicit warning against using bare `<pre class="mermaid">` tags — they render but produce tiny unusable diagrams without zoom/pan controls. Updated SKILL.md to point to the full `diagram-shell` pattern from `templates/mermaid-flowchart.html`.
+
+## [0.6.2] - 2026-03-08
+
+### Bug Fixes
+- Fixed fullscreen diagram export using wrong background color — now uses the same dark/light mode that was used to render the Mermaid theme
+
+## [0.6.1] - 2026-03-08
+
+### Pi Install Script
+- New `install-pi.sh` for one-command installation
+- Automatically patches `{{skill_dir}}` to actual install path
+- Usage: `curl -fsSL https://raw.githubusercontent.com/nicobailon/visual-explainer/main/install-pi.sh | bash`
+
+## [0.6.0] - 2026-03-08
+
+Based on PR #25 by [@peak-flow](https://github.com/peak-flow), with additional multi-diagram architecture and bug fixes.
+
+### Multi-Diagram Support
+- New vector-based zoom/pan engine replacing CSS `zoom` with direct SVG sizing
+- Closure-based `initDiagram(shell)` pattern — per-diagram state in closures, shared drag listeners at module scope
+- Unlimited diagrams per page with no ID collisions (each diagram gets a unique generated ID)
+- New HTML structure: `.diagram-shell` > `.mermaid-wrap` > `.mermaid-viewport` > `.mermaid-canvas`
+- Source Mermaid code lives in `<script type="text/plain" class="diagram-source">` to avoid parsing issues
+- Adaptive viewport height based on diagram aspect ratio
+- Smart fit algorithm with readability floor (prevents tiny unreadable diagrams)
+- New zoom controls: 1:1 button, zoom percentage label
+- Touch pinch-to-zoom support with proper pan transition
+- Double-click to fit diagram
+
+### Bug Fixes
+- Fixed touch pinch→pan transition (reset start coords after pinch ends)
+- Removed dead `fitZoom` variable from previous implementation
+- Removed 12 lines of dead scrollbar CSS (no longer needed with new viewport approach)
+
+### Documentation
+- Updated `css-patterns.md` with new multi-diagram structure and JavaScript pattern
+- Simplified Mermaid section to reference `mermaid-flowchart.html` as canonical source
+
+## [0.5.1] - 2026-03-05
+
+### Claude Code Marketplace Structure
+- Restructured repo to follow Claude Code's official plugin marketplace spec
+- Moved all skill files into `plugins/visual-explainer/` subdirectory
+- Added `.claude-plugin/marketplace.json` catalog for marketplace discovery
+- Plugin manifest now at `plugins/visual-explainer/.claude-plugin/plugin.json`
+- Install via marketplace: `/plugin marketplace add nicobailon/visual-explainer` then `/plugin install visual-explainer@visual-explainer-marketplace`
+
+### Pi Manual Install
+- Replaced `pi install` one-liner with manual installation instructions
+- Pi users now clone repo and copy skill + prompts to `~/.pi/agent/skills/` and `~/.pi/agent/prompts/`
+- Removed stale `pi` field from `package.json` (was pointing to non-existent root paths)
+
+### OpenAI Codex Install Fix
+- Fixed prompts path: `~/.codex/prompts/` (was incorrectly `~/.agents/commands/`)
+- Prompts are optional (deprecated feature) — skill works without them via `$visual-explainer`
+- With prompts installed, invoke as `/prompts:diff-review`, `/prompts:plan-review`, etc.
+
+### Breaking Changes
+- Direct Claude Code plugin install (`/plugin install https://...`) no longer works — use marketplace flow instead
+- `pi install https://github.com/nicobailon/visual-explainer` no longer works — use manual install
+
+## [0.5.0] - 2026-03-04
+
+### Class Diagram and C4 Architecture Support
+- Added `classDiagram` guidance for OOP design and domain modeling
+- Documented relationships: association, composition, aggregation, inheritance
+- Added C4 architecture support using `graph TD` + `subgraph` (not native `C4Context` which ignores themes)
+- Added `.dir-tree` CSS pattern for file structures with tree connectors
+- Added quick-reference table for choosing Mermaid diagram types
+
+### Claude Code Plugin Support
+- Added `.claude-plugin/plugin.json` manifest for Claude Code plugin installation
+- Renamed `prompts/` to `commands/` (compatible with both pi and Claude Code)
+- Claude Code: `claude /plugin install https://github.com/nicobailon/visual-explainer`
+- Note: Claude Code namespaces commands as `/visual-explainer:command-name`
+
+### OpenAI Codex Support
+- Added install instructions for OpenAI Codex to README
+- Uses `~/.agents/skills` and `~/.agents/commands` paths
+
+### Bug Fixes
+- Fixed pi skill loading: scoped `pi.skills` to `./SKILL.md` instead of `./` (was trying to load README.md and CHANGELOG.md as skills)
+- Fixed Mermaid line breaks: use `<br/>` instead of `\n` in flowchart labels (renders as literal text otherwise)
+- Fixed `mermaid-flowchart.html` to match documented pattern: moved flex centering from `.mermaid-wrap .mermaid` to `.mermaid-wrap`, added `min-height: 400px`
+
+## [0.4.5] - 2026-03-04
+
+### Click-to-Expand Mermaid Diagrams
+- Clicking anywhere on a Mermaid diagram (without dragging) opens it full-size in a new browser tab
+- Added expand button (⛶) to zoom controls for discoverability
+- New `openMermaidInNewTab()` and `openDiagramFullscreen()` functions in the Mermaid JavaScript pattern
+- Click detection distinguishes quick clicks from drag-to-pan (5px movement threshold, 300ms time threshold)
+- Full-size view preserves the page's background color for visual consistency
+- Updated all templates (`mermaid-flowchart.html`, `slide-deck.html`) with new pattern
+- Updated `css-patterns.md` and `slide-patterns.md` documentation
+
+### Bug Fixes
+- Removed unused `text` variable in `openMermaidInNewTab()` function
+- Removed unused `e` parameter in mouseup handlers
+- Fixed inconsistent zoom range limits (standardized to 0.5x–5x across all files)
+- Removed dead CSS `.mermaid-wrap.is-zoomed` rule (class was never applied by JavaScript)
+- Removed dead CSS `transition: transform` on `.mermaid` (zoom property is not animatable)
+- Added missing `cursor: grab` to base `.mermaid-wrap` selector in templates
+- Added missing flex centering (`display: flex; justify-content: center; align-items: center`) to `.mermaid-wrap` in `slide-deck.html`
+- Updated `SKILL.md` to explicitly mention the click-to-expand feature and expand button so agents include it when generating pages
+- Updated all prompt templates (`diff-review.md`, `plan-review.md`, `project-recap.md`, `generate-visual-plan.md`) to specify the expand button and click-to-expand functionality for Mermaid diagrams
+
+## [0.4.4] - 2026-03-02
+
+### Hybrid Architecture Pattern
+- New pattern for complex architectures (15+ elements): simple Mermaid overview (5-8 nodes) + CSS Grid cards for details
+- Updated "Architecture / System Diagrams" section in SKILL.md with three-tier approach based on complexity
+- Reduced max Mermaid node count from 15-20 to 10-12 in `libraries.md`
+- Updated Mermaid scaling guidance to recommend hybrid pattern over scaling tricks for complex diagrams
+
 ## [0.4.3] - 2026-03-01
 
 ### Mermaid Zoom and Positioning Fixes
@@ -10,14 +223,6 @@
 - Removed unnecessary `.mermaid-inner` wrapper — no longer needed with zoom-based approach.
 - Updated JavaScript to use `INITIAL_ZOOM` constant for consistent reset behavior.
 - Updated "Scaling Small Diagrams" section to use `zoom` instead of `transform: scale()` for consistency.
-
-## [0.4.4] - 2026-03-02
-
-### Hybrid Architecture Pattern
-- New pattern for complex architectures (15+ elements): simple Mermaid overview (5-8 nodes) + CSS Grid cards for details
-- Updated "Architecture / System Diagrams" section in SKILL.md with three-tier approach based on complexity
-- Reduced max Mermaid node count from 15-20 to 10-12 in `libraries.md`
-- Updated Mermaid scaling guidance to recommend hybrid pattern over scaling tricks for complex diagrams
 
 ## [0.4.2] - 2026-03-01
 

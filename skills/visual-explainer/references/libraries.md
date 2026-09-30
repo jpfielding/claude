@@ -4,10 +4,10 @@ Optional CDN libraries for cases where pure CSS/HTML isn't enough. Only include 
 
 ## Contents
 
-- [Mermaid.js — Diagramming Engine](#mermaidjs--diagramming-engine) — flowcharts, sequence/state/ER diagrams; theming, CSS overrides, label gotchas, layout direction, diagram types, dark mode
-- [Chart.js — Data Visualizations](#chartjs--data-visualizations) — bar/line/pie/scatter for dashboards and metrics
-- [anime.js — Orchestrated Animations](#animejs--orchestrated-animations) — timeline-based motion beyond CSS keyframes
-- [Google Fonts — Typography](#google-fonts--typography) — CDN import patterns and typography-by-voice guidance
+- [Mermaid.js — Diagramming Engine](#mermaidjs--diagramming-engine) — L12
+- [Chart.js — Data Visualizations](#chartjs--data-visualizations) — L454
+- [anime.js — Orchestrated Animations](#animejs--orchestrated-animations) — L512
+- [Google Fonts — Typography](#google-fonts--typography) — L564
 
 ## Mermaid.js — Diagramming Engine
 
@@ -82,7 +82,7 @@ Always use `theme: 'base'` — it's the only theme where all `themeVariables` ar
 Mermaid renders SVG. Override its classes for pixel-perfect control that `themeVariables` can't reach:
 
 ```css
-/* Container — see css-layout.md "Mermaid Containers" for the full zoom pattern */
+/* Container — see css-patterns.md "Mermaid Zoom Controls" for the full zoom pattern */
 .mermaid-wrap {
   position: relative;
   background: var(--surface);
@@ -209,6 +209,16 @@ If you need multi-line labels or special characters, use a `flowchart` instead o
 ### Writing Valid Mermaid
 
 Most Mermaid failures come from a few recurring issues. Follow these rules to avoid invalid diagrams:
+
+**For multi-line flowchart node labels, use `<br/>` (not `\n`).** Mermaid flowcharts interpret `<br/>` as a line break, but escaped `\n` in labels often renders as literal text:
+
+```
+%% WRONG — renders literal "\n" in node text
+A["Copilot Backend\n/api + /api/voicebot"] --> B["Redis"]
+
+%% RIGHT — renders on two lines
+A["Copilot Backend<br/>/api + /api/voicebot"] --> B["Redis"]
+```
 
 **Quote labels with special characters.** Parentheses, colons, commas, brackets, and ampersands break the parser when unquoted. Wrap any label containing special characters in double quotes:
 
@@ -371,6 +381,65 @@ mindmap
 </pre>
 ```
 
+**Class diagram:**
+```html
+<pre class="mermaid">
+classDiagram
+  class User {
+    +string email
+    +string name
+    +login()
+    +logout()
+  }
+  class Order {
+    +int id
+    +decimal total
+    +submit()
+  }
+  class Product {
+    +string name
+    +decimal price
+  }
+  User "1" --> "*" Order : places
+  Order "*" --> "*" Product : contains
+</pre>
+```
+
+**C4 architecture (flowchart-as-C4):**
+```html
+<pre class="mermaid">
+graph TD
+  user("👤 User<br/><small>Browser client</small>")
+  subgraph boundary["Web Platform"]
+    app["Web App<br/><small>Node.js</small>"]
+    db[("Database<br/><small>PostgreSQL</small>")]
+  end
+  email["📧 Email Service"]:::ext
+  payment["💳 Payment Gateway"]:::ext
+  user -->|"HTTPS"| app
+  app -->|"SQL"| db
+  app -->|"SMTP"| email
+  app -->|"API"| payment
+  classDef ext fill:none,stroke-dasharray:5 5
+</pre>
+```
+
+Do NOT use native `C4Context` / `C4Container` syntax — it hardcodes sharp corners, its own font, and inline colors that ignore `themeVariables`. Use `graph TD` + `subgraph` for C4 boundaries instead; it inherits all theme settings automatically.
+
+### Which Mermaid Diagram Type?
+
+Quick-reference for choosing the right Mermaid syntax:
+
+| You want to show... | Use | Syntax keyword |
+|---|---|---|
+| Process flow, decisions, pipelines | Flowchart | `graph TD` / `graph LR` |
+| Request/response, API calls, temporal interactions | Sequence diagram | `sequenceDiagram` |
+| Database tables and relationships | ER diagram | `erDiagram` |
+| OOP classes, domain models with methods | Class diagram | `classDiagram` |
+| System architecture at multiple zoom levels | C4 diagram | `graph TD` + `subgraph` (not native `C4Context`) |
+| State transitions, lifecycles | State diagram | `stateDiagram-v2` |
+| Hierarchical breakdowns, brainstorms | Mind map | `mindmap` |
+
 ### Dark Mode Handling
 
 Mermaid initializes once — it can't reactively switch themes. Read the preference at load time inside your `<script type="module">`:
@@ -505,14 +574,14 @@ Always load with `display=swap` for fast rendering. Pick a distinctive pairing �
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 ```
 
 Define as CSS variables for easy reference:
 ```css
 :root {
-  --font-body: 'Outfit', system-ui, sans-serif;
-  --font-mono: 'Space Mono', 'SF Mono', Consolas, monospace;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
 }
 ```
 
@@ -529,12 +598,12 @@ Define as CSS variables for easy reference:
 | Sora | IBM Plex Mono | Technical, precise | ER diagrams, schemas |
 | Crimson Pro | Noto Sans Mono | Scholarly, serious | RFC reviews, specs |
 | Fraunces | Source Code Pro | Warm, distinctive | Project recaps |
-| Geist | Geist Mono | Vercel-inspired, sharp | Modern API docs |
+| Geist | Geist Mono | Sharp, modern | Modern API docs |
 | Red Hat Display | Red Hat Mono | Cohesive family | System overviews |
 | Libre Franklin | Inconsolata | Classic, reliable | Data-dense tables |
 | Playfair Display | Roboto Mono | Elegant contrast | Executive summaries |
 
-The first 5 pairings are recommended for most use cases. Vary across consecutive diagrams.
+The first 5 pairings are recommended for most use cases. Vary across consecutive diagrams. Load every weight the CSS renders. Fragment Mono ships only `400`, and Space Mono ships `400` and `700`; use those only when your mono CSS uses those weights.
 
 ### Typography by Content Voice
 
