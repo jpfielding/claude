@@ -8,6 +8,7 @@ finding matters and what the recommended remediation is. Keep concise.
 - [MEMORY.md hygiene](#memorymd-hygiene)
 - [CLAUDE.md hygiene](#claudemd-hygiene)
 - [Skills hygiene](#skills-hygiene)
+- [Agents hygiene](#agents-hygiene)
 - [Live conversation hygiene](#live-conversation-hygiene)
 - [Thresholds at a glance](#thresholds-at-a-glance)
 
@@ -77,6 +78,19 @@ one, Claude may load the whole file just to find out it's irrelevant.
 - Delete skills that have never triggered and whose purpose is unclear —
   their metadata costs context on every conversation.
 
+## Agents hygiene
+
+**Agent descriptions load every session.** Each agent's frontmatter
+`description` is copied into the Agent tool listing of every conversation;
+the body loads only when the agent is invoked. Generated agents often embed
+an `Examples:` block of user/assistant pairs in the description — that is
+pure per-session tax.
+
+**Recommended actions:**
+- Keep descriptions to one or two sentences: what it does + "Use PROACTIVELY
+  when …" triggers.
+- Move examples and detail into the body.
+
 ## Live conversation hygiene
 
 The audit script cannot see the live conversation. When running
@@ -109,4 +123,5 @@ slash command to inspect real token usage.
 | Global `CLAUDE.md` lines | 400 | — | loads every session |
 | `SKILL.md` body lines | 500 | 750 | skill-creator guidance |
 | Skill `description` chars | 60 | — | trigger reliability |
+| Agent `description` chars | 1000 | — | loads every session |
 | Reference file lines | 100 (add TOC) | — | Claude previews only the head |

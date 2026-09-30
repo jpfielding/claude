@@ -1,6 +1,8 @@
 // context-audit walks ~/.claude/ read-only and flags context-management
-// hygiene issues: oversized MEMORY.md, dead/orphan memory pointers, bloated
-// SKILL.md bodies, reference files without a TOC, etc. Stdlib only.
+// hygiene issues: oversized per-project MEMORY.md indexes
+// (projects/*/memory/MEMORY.md), dead/orphan memory pointers, bloated
+// SKILL.md bodies (including symlinked skills), reference files without a
+// TOC, oversized agent descriptions, etc. Stdlib only.
 package main
 
 import (
@@ -16,12 +18,13 @@ import (
 
 // Thresholds tuned to Claude Code's documented loading behavior.
 const (
-	memoryTruncateLines    = 200 // MEMORY.md truncates after 200 lines
-	memoryIndexMaxLineLen  = 150 // per auto-memory guidance
-	skillBodySoftLimit     = 500 // skill-creator soft cap
-	skillBodyHardLimit     = 750 // flag loudly above this
-	referenceTocThreshold  = 100 // reference files > this should have a TOC
-	claudeMdSoftLimit      = 400 // keep global CLAUDE.md lean
+	memoryTruncateLines   = 200  // MEMORY.md truncates after 200 lines
+	memoryIndexMaxLineLen = 150  // per auto-memory guidance
+	skillBodySoftLimit    = 500  // skill-creator soft cap
+	skillBodyHardLimit    = 750  // flag loudly above this
+	referenceTocThreshold = 100  // reference files > this should have a TOC
+	claudeMdSoftLimit     = 400  // keep global CLAUDE.md lean
+	agentDescSoftLimit    = 1000 // agent descriptions load into every session's Agent tool listing
 )
 
 type severity int
@@ -118,25 +121,44 @@ var (
 )
 
 func auditMemory(root string, rep *report) {
-	index := filepath.Join(root, "MEMORY.md")
+	type idx struct{ index, memDir string }
+	var indexes []idx
 
-	// Locate memory/ directory. Default path per auto-memory system prompt,
-	// fall back to any projects/*/memory the first glob match finds.
-	memDir := filepath.Join(root, "projects", "-Users-fieldingj--claude", "memory")
-	if _, err := os.Stat(memDir); err != nil {
-		matches, _ := filepath.Glob(filepath.Join(root, "projects", "*", "memory"))
-		if len(matches) > 0 {
-			memDir = matches[0]
-		}
+	// Legacy/global index at the root, if present.
+	rootIndex := filepath.Join(root, "MEMORY.md")
+	if _, err := os.Stat(rootIndex); err == nil {
+		indexes = append(indexes, idx{rootIndex, filepath.Join(root, "memory")})
 	}
 
-	if _, err := os.Stat(index); err != nil {
-		rep.add(sevLow, "MEMORY", index, "MEMORY.md not found — memory system unused or relocated")
+	// Per-project auto-memory: <root>/projects/<slug>/memory/MEMORY.md.
+	matches, _ := filepath.Glob(filepath.Join(root, "projects", "*", "memory", "MEMORY.md"))
+	sort.Strings(matches)
+	for _, m := range matches {
+		indexes = append(indexes, idx{m, filepath.Dir(m)})
+	}
+
+	if len(indexes) == 0 {
+		rep.add(sevLow, "MEMORY", filepath.Join(root, "projects", "*", "memory", "MEMORY.md"),
+			"MEMORY.md not found — memory system unused or relocated")
 		return
 	}
 
+	totalFiles, totalEntries := 0, 0
+	for _, ix := range indexes {
+		files, entries := auditMemoryIndex(ix.index, ix.memDir, rep)
+		totalFiles += files
+		totalEntries += entries
+	}
+
+	rep.stat("memory indexes", fmt.Sprintf("%d", len(indexes)))
+	rep.stat("memory files on disk", fmt.Sprintf("%d", totalFiles))
+	rep.stat("memory entries indexed", fmt.Sprintf("%d", totalEntries))
+}
+
+// auditMemoryIndex checks one MEMORY.md index against its memory directory
+// and returns the number of memory files on disk and entries indexed.
+func auditMemoryIndex(index, memDir string, rep *report) (files, entries int) {
 	lines := readLines(index)
-	rep.stat("MEMORY.md lines", fmt.Sprintf("%d", len(lines)))
 
 	switch {
 	case len(lines) > memoryTruncateLines:
@@ -187,9 +209,10 @@ func auditMemory(root string, rep *report) {
 	}
 
 	existing := map[string]struct{}{}
-	if entries, err := os.ReadDir(memDir); err == nil {
-		for _, e := range entries {
-			if !e.IsDir() && strings.HasSuffix(e.Name(), ".md") {
+	if dirEntries, err := os.ReadDir(memDir); err == nil {
+		for _, e := range dirEntries {
+			// Exclude the index itself, or it reports as its own orphan.
+			if !e.IsDir() && strings.HasSuffix(e.Name(), ".md") && e.Name() != "MEMORY.md" {
 				existing[e.Name()] = struct{}{}
 			}
 		}
@@ -224,8 +247,7 @@ func auditMemory(root string, rep *report) {
 			fmt.Sprintf("%d dead pointer(s) — linked from MEMORY.md but file missing: %s", len(dead), preview))
 	}
 
-	rep.stat("memory files on disk", fmt.Sprintf("%d", len(existing)))
-	rep.stat("memory entries indexed", fmt.Sprintf("%d", len(referenced)))
+	return len(existing), len(referenced)
 }
 
 func auditClaudeMd(root string, rep *report) {
@@ -242,6 +264,13 @@ func auditClaudeMd(root string, rep *report) {
 	}
 }
 
+// isDir reports whether path is a directory, following symlinks
+// (os.DirEntry.IsDir is false for a symlink to a directory).
+func isDir(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
+}
+
 func auditSkills(root string, rep *report) {
 	skillsDir := filepath.Join(root, "skills")
 	if _, err := os.Stat(skillsDir); err != nil {
@@ -254,10 +283,10 @@ func auditSkills(root string, rep *report) {
 		return
 	}
 	for _, e := range entries {
-		if !e.IsDir() {
+		top := filepath.Join(skillsDir, e.Name())
+		if !isDir(top) {
 			continue
 		}
-		top := filepath.Join(skillsDir, e.Name())
 		if _, err := os.Stat(filepath.Join(top, "SKILL.md")); err == nil {
 			skillDirs = append(skillDirs, top)
 		}
@@ -267,10 +296,10 @@ func auditSkills(root string, rep *report) {
 			continue
 		}
 		for _, s := range subs {
-			if !s.IsDir() {
+			sub := filepath.Join(top, s.Name())
+			if !isDir(sub) {
 				continue
 			}
-			sub := filepath.Join(top, s.Name())
 			if _, err := os.Stat(filepath.Join(sub, "SKILL.md")); err == nil {
 				skillDirs = append(skillDirs, sub)
 			}
@@ -318,10 +347,10 @@ func auditSkills(root string, rep *report) {
 			continue
 		}
 		for _, re := range refEntries {
-			if re.IsDir() || !strings.HasSuffix(re.Name(), ".md") {
+			refPath := filepath.Join(refsDir, re.Name())
+			if !strings.HasSuffix(re.Name(), ".md") || isDir(refPath) {
 				continue
 			}
-			refPath := filepath.Join(refsDir, re.Name())
 			rlines := readLines(refPath)
 			if len(rlines) <= referenceTocThreshold {
 				continue
@@ -344,13 +373,36 @@ func auditAgents(root string, rep *report) {
 	if err != nil {
 		return
 	}
-	n := 0
+	n, descTotal := 0, 0
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".md") {
-			n++
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
+			continue
+		}
+		n++
+		path := filepath.Join(dir, e.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		frontmatter, _ := splitFrontmatter(string(data))
+		m := descRe.FindStringSubmatch(frontmatter)
+		if m == nil {
+			rep.add(sevMed, "AGENTS", path, "missing description in frontmatter — agent won't be selected correctly")
+			continue
+		}
+		desc := strings.TrimSpace(m[1])
+		if len(desc) >= 2 && strings.HasPrefix(desc, `"`) && strings.HasSuffix(desc, `"`) {
+			desc = desc[1 : len(desc)-1]
+		}
+		descTotal += len(desc)
+		if len(desc) > agentDescSoftLimit {
+			rep.add(sevMed, "AGENTS", path,
+				fmt.Sprintf("description is %d chars (> %d) — it loads into every session's Agent tool listing; move examples/detail into the body",
+					len(desc), agentDescSoftLimit))
 		}
 	}
 	rep.stat("agents installed", fmt.Sprintf("%d", n))
+	rep.stat("agent description chars (total)", fmt.Sprintf("%d", descTotal))
 }
 
 func auditSettings(root string, rep *report) {

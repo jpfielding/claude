@@ -48,7 +48,7 @@ shows the live token breakdown of the current conversation.
 
 | Category | Check |
 |---|---|
-| MEMORY | MEMORY.md line count vs. 200-line truncation limit |
+| MEMORY | Each `projects/*/memory/MEMORY.md` line count vs. 200-line truncation limit |
 | MEMORY | MEMORY.md lines exceeding 150 chars (index-only discipline) |
 | MEMORY | Orphan files in `memory/` not linked from MEMORY.md |
 | MEMORY | Dead pointers in MEMORY.md whose target file is missing |
@@ -56,7 +56,7 @@ shows the live token breakdown of the current conversation.
 | SKILLS | SKILL.md body > 500 (MED) or > 750 (HIGH) lines |
 | SKILLS | Skill description < 60 chars (weak trigger signal) |
 | SKILLS | Reference files > 100 lines without a visible TOC |
-| AGENTS | Count of installed agents (inventory only) |
+| AGENTS | Agent `description` > 1000 chars (loads into every session's Agent tool listing) |
 | SETTINGS | Line counts for settings.json / settings.local.json |
 
 ## Script location

@@ -1,6 +1,6 @@
 ---
 name: stig-compliance
-description: Guide STIG compliance workflows — generate tailoring files, interpret XCCDF rules, explain CAT levels, map findings to remediations, and advise on SCAP scanning strategy. Use when the user asks about STIGs, XCCDF, SCAP, tailoring, hardening, or compliance.
+description: Use the `stig` Go CLI (pkg/stig, cmd/stig) to generate XCCDF tailoring files by CAT level, severity, or query, list profiles/rules, and feed the result to `oscap xccdf eval`. Use when working in the stig repo or when the user mentions the `stig` CLI or generating tailoring files. For general STIG hardening, remediation, POA&M, or non-SCAP platforms, use the stig-compliance agent instead.
 ---
 
 # STIG Compliance Guide
