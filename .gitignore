@@ -33,3 +33,4 @@ remote-settings.json
 policy-limits.json.stamp.json
 skills/synced/
 state/
+skills/.trash
