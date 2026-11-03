@@ -1,0 +1,32 @@
+{
+  "draft_id": "c160b92c-703f-4b48-8a6d-f697be1bb62d",
+  "created_at": "2026-10-13T23:54:44.884Z",
+  "source_session_id": "e34385a8-21b8-4360-8553-a17ba5daa835",
+  "cwd": "/Users/jpfielding/projects/ru-stl",
+  "model": "claude-fable-5-1",
+  "cli_version": "2.1.296",
+  "os": "darwin arm64",
+  "request_ids": [
+    "req_011Cg18w87YUTQDAuMVyjUKJ",
+    "req_011Cg18wz9bSmw8Pt2XvvfAn",
+    "req_011Cg18xcMT2Ccr4hx6Crtq1"
+  ],
+  "type": "bug",
+  "title": "/doctor cleanup briefly emptied ~/.claude/settings.json via misplaced jq --args",
+  "details": "- **What happened:** While applying the approved /doctor cleanup, the model ran `jq --arg … --args '<filter>' \"$S\" <names…> > \"$T\"`; with `--args` placed before the filter, jq consumed the settings path as a positional string and read stdin (empty), producing an empty temp file. The guard `jq empty \"$T\"` accepts empty input, so `cp \"$T\" \"$S\"` overwrote `~/.claude/settings.json` with 0 bytes. Detected on the next verification read; restored from the mktemp backup made in the same command and reapplied correctly (`file --args names`) with an `-s`/`-e` non-empty check. Expected: the write guard should have rejected empty output.\n- **What the user said:** User didn't comment; observed by the model.\n- **Repro:** `jq --args 'filter' file a b > out; jq empty out && cp out file` — `jq empty` on empty input exits 0.\n- **Evidence:** session 2026-10-13, /doctor run in ~/projects/ru-stl; backup path printed as `claude-settings-backup.XXXXXX.XlYldQ97r5` in the mktemp dir.\n- **Cause:** jq `--args` must follow the input file; verified in-session by the corrected command producing the expected 7,641-byte file.",
+  "area": "/doctor",
+  "failure_mode": "destructive_actions",
+  "task_category": "shell",
+  "trigger": "model_judgment",
+  "effort": "high",
+  "thinking_type": "adaptive",
+  "message_count": 490,
+  "assistant_turn_count": 60,
+  "subagent_count": 6,
+  "transcript_ref": {
+    "session_file": "/Users/jpfielding/.claude/projects/-Users-jpfielding-projects-ru-stl/e34385a8-21b8-4360-8553-a17ba5daa835.jsonl",
+    "message_range": null,
+    "project_dir_key": "-Users-jpfielding-projects-ru-stl"
+  },
+  "status": "queued"
+}
