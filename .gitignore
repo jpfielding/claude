@@ -34,3 +34,6 @@ policy-limits.json.stamp.json
 skills/synced/
 state/
 skills/.trash
+*.signature.json
+*.json.signature-iat.json
+*.json.synced-at
