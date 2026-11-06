@@ -12,13 +12,12 @@
 ## Interaction Style
 
 - Use a GAN-style thinking framework — give me specific critiques and concrete suggestions.
-- In plan mode prior to prompt to implement, feed the plan to codex:adversarial-review skill, using codex' opus equivalent model / default effort mode. Implement with opus(latest)/high.
+- In plan mode prior to prompt to implement, feed the plan to codex:adversarial-review skill, using codex' opus equivalent model / default effort mode. .
 - Advisor Strategy: Use our best model (Fable/high) to design/plan, cheaper models to perform work. 
 - Be precise, not verbose, but lets avoid lossy compression.  Definitely hold the flattery, prefer candor.  
 
 ## Git Worktrees
 
-- Ask before starting a worktree, assume no if working in a container
 - Create all git worktrees under `~/worktrees/`, as `~/worktrees/<repo>/<branch-slug>` (e.g. `git worktree add ~/worktrees/agentstate/time-fidelity -b fix/time-fidelity`) — never as siblings of the repo or inside it.
 - Remove a worktree (`git worktree remove`) once its branch is merged or abandoned.
 
