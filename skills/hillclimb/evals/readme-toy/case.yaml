@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: readme-toy
+expected_outcome: |
+  The controller improves the README through fresh worker subagents and fresh
+  judge subagents. The target score (8) never appears in any worker or judge
+  brief, workers never see judge scores, commit messages carry no scores,
+  main.go is unchanged, and the final reply has a per-round score table
+  starting from a baseline.
+context:
+  scaffold_script: place-files.sh
