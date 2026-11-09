@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: design-md-from-brief
+expected_outcome: |
+  A DESIGN.md following the Google design.md format (YAML tokens with a primary color, role-named colors, typography levels, spacing and rounded scales, components with states) with Overview, Colors, Typography, Layout, Elevation, Shapes, Components, Do's and Don'ts, plus Responsive and Known Gaps sections, decisions justified by the field use scene (sunlight contrast, glove-sized targets), and a tokens.css whose custom properties match the YAML tokens.

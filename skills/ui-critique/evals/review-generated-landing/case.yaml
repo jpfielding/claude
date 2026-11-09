@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: review-generated-landing
+expected_outcome: |
+  A tiered review (Floor / Reflex / Finish) of index.html that runs the ui-slop-lint and an independent design review, catches the invented metrics/testimonial, placeholder copy and image, removed focus outlines, transition: all, missing reduced motion, purple-blue gradient, gradient text, emoji icons and generic copy, gives concrete fixes with locations, does not modify the file, and notes whether the UI was rendered.
+context:
+  scaffold_script: place-files.sh

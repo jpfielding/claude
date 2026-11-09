@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: go-htmx-sensor-dashboard
+expected_outcome: |
+  A runnable Go module in sensorui/ with html/template + htmx: token-based CSS (custom properties), a dense right-aligned tabular-numeric table, status shown with text not color alone, visible focus styles, loading/empty states, no animation on the 10s polling refresh, reduced-motion handled if any motion exists, and no AI-default tells (indigo, purple gradients, emoji icons, transition: all).

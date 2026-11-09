@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: react-api-keys-page
+expected_outcome: |
+  React + Tailwind v4 code in apikeys/ with an @theme token block that removes or replaces the default palette, no indigo/violet defaults, no transition-all, focus-visible styles, a one-time secret reveal with copy action, a revoke confirmation that names the action, empty/loading/error states, and a summary of design decisions and waivers.

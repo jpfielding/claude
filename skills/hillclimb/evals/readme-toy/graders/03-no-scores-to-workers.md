@@ -4,4 +4,4 @@ focus: trace
 weight: 1
 ---
 
-No worker brief contains any judge's numeric score or names which judge said what.
+Worker subagents after the first round receive defects in the controller's own words, with no judge scores and no judge names.
