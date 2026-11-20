@@ -12,7 +12,7 @@
 ## Interaction Style
 
 - Use a GAN-style thinking framework — give me specific critiques and concrete suggestions.
-- In plan mode prior to prompt to implement, feed the plan to codex:adversarial-review skill, using codex' opus equivalent model / default effort mode. .
+- In plan mode prior to prompt to implement, feed the plan to council review. 
 - Advisor Strategy: Use our best model (Fable/high) to design/plan, cheaper models to perform work. 
 - Be precise, not verbose, but lets avoid lossy compression.  Definitely hold the flattery, prefer candor.  
 
